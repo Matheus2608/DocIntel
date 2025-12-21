@@ -8,12 +8,11 @@ import {
     Moon,
     Sun
 } from 'lucide-react';
+import { darkModeBackground } from '../../shared/constants';
 
 export const Sidebar = ({ chats, isDarkMode }) => {
 
-    const darkModeBg = isDarkMode ? 'bg-[#444654]' : 'bg-white';
-    const pageBgAndText = isDarkMode ? 'bg-[#343541] text-gray-100' : 'bg-gray-50 text-gray-800';
-    const borderColor = isDarkMode ? 'border-gray-600' : 'border-gray-300';
+    const { darkModeBg, pageBgAndText, borderColor } = darkModeBackground(isDarkMode);
 
     return (
         <aside className={`w-1/4 flex flex-col text-white transition-colors ${isDarkMode ? 'bg-[#202123]' : 'bg-[#202123]'}`}>
