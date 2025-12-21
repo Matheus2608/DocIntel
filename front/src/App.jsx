@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Plus, 
   MessageSquare, 
@@ -8,10 +8,21 @@ import {
   Trash2, 
   Edit3,
   UploadCloud,
-  Send
+  Send,
+  Moon,
+  Sun
 } from 'lucide-react';
+import axios from 'axios';
 
 const App = () => {
+    // Estado para o modo escuro
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Classe de background principal para componentes escuros na main
+  const darkModeBg = isDarkMode ? 'bg-[#444654]' : 'bg-white';
+  const pageBgAndText = isDarkMode ? 'bg-[#343541] text-gray-100' : 'bg-gray-50 text-gray-800';
+  const borderColor = isDarkMode ? 'border-gray-600' : 'border-gray-300';
+
   // Estado para simular as conversas anteriores
   const [chats, setChats] = useState([
     { id: 1, title: 'Análise Contrato_A.pdf', active: true },
@@ -20,12 +31,16 @@ const App = () => {
   ]);
 
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-800">
+    <div className={`flex h-screen transition-colors ${pageBgAndText}`}>
       {/* SIDEBAR */}
-      <aside className="w-1/4 bg-[#202123] flex flex-col text-white">
+      <aside className={`w-1/4 flex flex-col text-white transition-colors ${isDarkMode ? 'bg-[#202123]' : 'bg-[#202123]'}`}>
         {/* Botão Novo Chat */}
         <div className="p-4">
-          <button className="w-full flex items-center gap-3 px-4 py-3 border border-gray-600 rounded-md hover:bg-gray-700 transition-colors text-sm">
+          <button className="w-full flex items-center gap-3 px-4 py-3 border border-gray-600 rounded-md hover:bg-gray-700 transition-colors text-sm" onClick={() => setIsDarkMode(!isDarkMode)}>
+            {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+            {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          <button className="w-full flex items-center gap-3 px-4 py-3 border border-gray-600 rounded-md hover:bg-gray-700 transition-colors text-sm mt-2">
             <Plus size={16} />
             New Chat
           </button>
@@ -73,36 +88,38 @@ const App = () => {
 
       {/* CONTEÚDO PRINCIPAL (Main Content) */}
       <main className="flex-1 flex flex-col w-full h-full items-center justify-center">
-        <div className="w-full max-w-3xl bg-white rounded-md shadow-sm border-none overflow-hidden flex flex-col h-full">
+        <div className={`w-full max-w-3xl rounded-md shadow-sm border-none overflow-hidden flex flex-col h-full transition-colors`}>
           
           {/* Header do Chat */}
-          <div className="bg-blue-600 p-6 border rounded-2xl m-4 text-white shrink-0 items-center justify-center flex flex-col">
+          {/* Mantém azul/branco mesmo no modo escuro */}
+          <div className="bg-blue-600 p-6 border-none rounded-2xl m-4 text-white shrink-0 items-center justify-center flex flex-col">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <MessageSquare size={20} />
               Document Q&A
             </h2>
-            <p className="text-blue-100 text-sm">Faça perguntas sobre seus PDFs ou documentos Word.</p>
+            <p className={`text-sm`}>Faça perguntas sobre seus PDFs ou documentos Word.</p>
           </div>
 
           {/* Área de Upload / Histórico de Mensagens */}
-          <div className="flex-1 p-8 overflow-y-auto flex flex-col justify-center items-center border-none">
+          <div className={`border-none flex-1 p-8 overflow-y-auto flex flex-col justify-center items-center border-none transition-colors`}>
              {/* Dropzone que criamos antes */}
-             <div className="w-full border-2 border-dashed border-gray-300 rounded-2xl p-16 flex flex-col items-center justify-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer group">
-                <div className="bg-blue-100 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
+             {/* Mantém branco/azul mesmo no modo escuro */}
+             <div className={`w-full bg-white border-2 border-dashed rounded-2xl p-16 flex flex-col items-center justify-center transition-all cursor-pointer group border-gray-300 hover:border-blue-400 hover:bg-blue-50`}>
+               <div className={`p-4 rounded-full mb-4 group-hover:scale-110 transition-transform bg-blue-100`}>
                   <UploadCloud size={32} className="text-blue-600" />
                 </div>
-                <p className="text-lg font-medium text-gray-700">Click to upload PDF or DOC</p>
-                <p className="text-sm text-gray-400 mt-1">ou arraste o arquivo aqui</p>
+                <p className={`text-lg font-medium text-gray-700`}>Click to upload PDF or DOC</p>
+                <p className={`text-sm mt-1 text-gray-400`}>ou arraste o arquivo aqui</p>
              </div>
           </div>
 
           {/* Input de Pergunta (Fixo na parte inferior) */}
-          <div className="p-6 border-t border-gray-100 bg-gray-50">
-            <div className="flex gap-3 bg-white border border-gray-300 rounded-xl p-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+          <div className={`p-6 border-t transition-colors border-none`}>
+            <div className={`flex gap-3 border rounded-xl p-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 transition-all ${darkModeBg} ${borderColor}`}>
               <input 
                 type="text" 
                 placeholder="Upload a document first"
-                className="flex-1 px-4 py-2 outline-none text-gray-600"
+                className={`flex-1 px-4 py-2 outline-none transition-colors ${darkModeBg} ${isDarkMode ? 'text-gray-white placeholder-white' : 'text-gray-600 placeholder-gray-400'}`}
                 disabled
               />
               <button className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 transition-colors">
