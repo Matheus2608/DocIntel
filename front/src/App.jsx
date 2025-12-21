@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Plus, 
-  MessageSquare, 
-  FileText, 
-  Settings, 
-  LogOut, 
-  Trash2, 
+import {
+  Plus,
+  MessageSquare,
+  FileText,
+  Settings,
+  LogOut,
+  Trash2,
   Edit3,
   UploadCloud,
   Send,
@@ -15,8 +15,17 @@ import {
 import axios from 'axios';
 
 const App = () => {
-    // Estado para o modo escuro
+  // Estado para o modo escuro
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const fetchBack = async () => {
+    const response = await axios.get('http://localhost:8080/hello')
+    console.log(response.data)
+  }
+  useEffect(() => {
+    fetchBack();
+  }, [])
+
 
   // Classe de background principal para componentes escuros na main
   const darkModeBg = isDarkMode ? 'bg-[#444654]' : 'bg-white';
@@ -50,15 +59,14 @@ const App = () => {
         <nav className="flex-1 overflow-y-auto px-2 space-y-1 custom-scrollbar">
           <p className="text-xs text-gray-500 font-semibold px-3 py-2 uppercase">Recent</p>
           {chats.map((chat) => (
-            <div 
+            <div
               key={chat.id}
-              className={`group flex items-center gap-3 px-3 py-3 rounded-md cursor-pointer transition-colors ${
-                chat.active ? 'bg-gray-700' : 'hover:bg-gray-800'
-              }`}
+              className={`group flex items-center gap-3 px-3 py-3 rounded-md cursor-pointer transition-colors ${chat.active ? 'bg-gray-700' : 'hover:bg-gray-800'
+                }`}
             >
               <FileText size={16} className="text-gray-400" />
               <span className="flex-1 text-sm truncate">{chat.title}</span>
-              
+
               {/* Ícones de ação (aparecem no hover) */}
               {chat.active && (
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -89,7 +97,7 @@ const App = () => {
       {/* CONTEÚDO PRINCIPAL (Main Content) */}
       <main className="flex-1 flex flex-col w-full h-full items-center justify-center">
         <div className={`w-full max-w-3xl rounded-md shadow-sm border-none overflow-hidden flex flex-col h-full transition-colors`}>
-          
+
           {/* Header do Chat */}
           {/* Mantém azul/branco mesmo no modo escuro */}
           <div className="bg-blue-600 p-6 border-none rounded-2xl m-4 text-white shrink-0 items-center justify-center flex flex-col">
@@ -102,22 +110,22 @@ const App = () => {
 
           {/* Área de Upload / Histórico de Mensagens */}
           <div className={`border-none flex-1 p-8 overflow-y-auto flex flex-col justify-center items-center border-none transition-colors`}>
-             {/* Dropzone que criamos antes */}
-             {/* Mantém branco/azul mesmo no modo escuro */}
-             <div className={`w-full bg-white border-2 border-dashed rounded-2xl p-16 flex flex-col items-center justify-center transition-all cursor-pointer group border-gray-300 hover:border-blue-400 hover:bg-blue-50`}>
-               <div className={`p-4 rounded-full mb-4 group-hover:scale-110 transition-transform bg-blue-100`}>
-                  <UploadCloud size={32} className="text-blue-600" />
-                </div>
-                <p className={`text-lg font-medium text-gray-700`}>Click to upload PDF or DOC</p>
-                <p className={`text-sm mt-1 text-gray-400`}>ou arraste o arquivo aqui</p>
-             </div>
+            {/* Dropzone que criamos antes */}
+            {/* Mantém branco/azul mesmo no modo escuro */}
+            <div className={`w-full bg-white border-2 border-dashed rounded-2xl p-16 flex flex-col items-center justify-center transition-all cursor-pointer group border-gray-300 hover:border-blue-400 hover:bg-blue-50`}>
+              <div className={`p-4 rounded-full mb-4 group-hover:scale-110 transition-transform bg-blue-100`}>
+                <UploadCloud size={32} className="text-blue-600" />
+              </div>
+              <p className={`text-lg font-medium text-gray-700`}>Click to upload PDF or DOC</p>
+              <p className={`text-sm mt-1 text-gray-400`}>ou arraste o arquivo aqui</p>
+            </div>
           </div>
 
           {/* Input de Pergunta (Fixo na parte inferior) */}
           <div className={`p-6 border-t transition-colors border-none`}>
             <div className={`flex gap-3 border rounded-xl p-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 transition-all ${darkModeBg} ${borderColor}`}>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Upload a document first"
                 className={`flex-1 px-4 py-2 outline-none transition-colors ${darkModeBg} ${isDarkMode ? 'text-gray-white placeholder-white' : 'text-gray-600 placeholder-gray-400'}`}
                 disabled
