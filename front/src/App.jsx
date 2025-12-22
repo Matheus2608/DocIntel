@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Sidebar } from './pages/home/Sidebar';
 import { Main } from './pages/home/Main';
+import DocumentQA from './pages/DocumentQA';
 import { darkModeBackground } from './shared/constants';
+import ChatAgent from './components/ChatAgent';
 
 const App = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [currentView, setCurrentView] = useState('document-qa'); // 'home' ou 'document-qa'
   const [chats, setChats] = useState([
     { id: 1, title: 'Análise Contrato_A.pdf', active: true },
     { id: 2, title: 'Resumo Relatório_RH.pdf', active: false },
@@ -22,6 +25,9 @@ const App = () => {
 
   const { pageBgAndText } = darkModeBackground(isDarkMode);
 
+  return (
+    <ChatAgent />
+  )
 
   return (
     <div className={`flex h-screen transition-colors ${pageBgAndText}`}>
