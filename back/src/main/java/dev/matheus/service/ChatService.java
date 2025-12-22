@@ -29,11 +29,27 @@ public class ChatService {
     DocumentFileRepository documentFileRepository;
 
     @Transactional
-    public ChatResponse createChat() {
+    public ChatResponse createChat(byte[] fileData, String fileName, String fileType) {
+        if (fileData == null) {
+            throw new IllegalArgumentException("File data cannot be null");
+        }
+
         Chat chat = new Chat();
+
+        DocumentFile documentFile = new DocumentFile();
+        documentFile.chat = chat;
+        documentFile.fileData = fileData;
+        documentFile.fileName = fileName;
+        documentFile.fileType = fileType;
+        documentFile.fileSize = (long) fileData.length;
+
+        chat.documentFile = documentFile;
+
         chatRepository.persist(chat);
+
         return mapToChatResponse(chat);
     }
+
 
     public ChatResponse getChat(String chatId) {
         Chat chat = chatRepository.findByIdOptional(chatId)

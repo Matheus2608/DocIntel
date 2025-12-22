@@ -9,8 +9,6 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.jboss.resteasy.reactive.MultipartForm;
-import org.jboss.resteasy.reactive.PartType;
 import org.jboss.resteasy.reactive.RestForm;
 
 import java.io.IOException;
@@ -26,10 +24,27 @@ public class ChatResource {
     ChatService chatService;
 
     @POST
-    public Response createChat() {
-        ChatResponse chat = chatService.createChat();
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public Response createChat(@RestForm("file") FileUpload file) {
+        if (!isValidFile(file)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("Tipo de arquivo inválido. Apenas PDF e DOCX são permitidos."))
+                    .build();
+        }
+
+        byte[] fileData;
+        try (InputStream f = file.uploadedFile()){
+            fileData = f.readAllBytes();
+        } catch (IOException e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new ErrorResponse("Erro ao processar o arquivo: " + e.getMessage()))
+                    .build();
+        }
+
+        ChatResponse chat = chatService.createChat(fileData, file.fileName, file.contentType);
         return Response.status(Response.Status.CREATED).entity(chat).build();
     }
+
 
     @GET
     public List<ChatResponse> listChats() {
@@ -62,38 +77,38 @@ public class ChatResource {
         return Response.status(Response.Status.CREATED).entity(message).build();
     }
 
-    @POST
-    @Path("/{chatId}/document")
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response uploadDocument(@PathParam("chatId") String chatId,
-                                    @MultipartForm DocumentUploadForm form) {
-        try {
-            // Validar tipo de arquivo
-            String contentType = form.file.contentType();
-            if (!isValidFileType(contentType)) {
-                return Response.status(Response.Status.BAD_REQUEST)
-                        .entity(new ErrorResponse("Tipo de arquivo inválido. Apenas PDF e DOCX são permitidos."))
-                        .build();
-            }
-
-            // Ler bytes do arquivo
-            byte[] fileData = form.file.uploadedFile().readAllBytes();
-
-            DocumentFileResponse response = chatService.uploadDocument(
-                    chatId,
-                    form.file.fileName(),
-                    contentType,
-                    (long) fileData.length,
-                    fileData
-            );
-
-            return Response.status(Response.Status.CREATED).entity(response).build();
-        } catch (IOException e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(new ErrorResponse("Erro ao processar o arquivo: " + e.getMessage()))
-                    .build();
-        }
-    }
+//    @POST
+//    @Path("/{chatId}/document")
+//    @Consumes(MediaType.MULTIPART_FORM_DATA)
+//    public Response uploadDocument(@PathParam("chatId") String chatId,
+//                                    @MultipartForm DocumentUploadForm form) {
+//        try {
+//            // Validar tipo de arquivo
+//            String contentType = form.file.contentType();
+//            if (!isValidFileType(contentType)) {
+//                return Response.status(Response.Status.BAD_REQUEST)
+//                        .entity(new ErrorResponse("Tipo de arquivo inválido. Apenas PDF e DOCX são permitidos."))
+//                        .build();
+//            }
+//
+//            // Ler bytes do arquivo
+//            byte[] fileData = form.file.uploadedFile().readAllBytes();
+//
+//            DocumentFileResponse response = chatService.uploadDocument(
+//                    chatId,
+//                    form.file.fileName(),
+//                    contentType,
+//                    (long) fileData.length,
+//                    fileData
+//            );
+//
+//            return Response.status(Response.Status.CREATED).entity(response).build();
+//        } catch (IOException e) {
+//            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+//                    .entity(new ErrorResponse("Erro ao processar o arquivo: " + e.getMessage()))
+//                    .build();
+//        }
+//    }
 
     @GET
     @Path("/{chatId}/document")
@@ -112,24 +127,24 @@ public class ChatResource {
                 .build();
     }
 
-    private boolean isValidFileType(String contentType) {
-        return contentType != null && (
-                contentType.equals("application/pdf") ||
-                contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document") ||
-                contentType.equals("application/msword")
-        );
-    }
-
-    public static class DocumentUploadForm {
-        @RestForm("file")
-        @PartType(MediaType.APPLICATION_OCTET_STREAM)
-        public FileUpload file;
-    }
-
     public record FileUpload(String fileName, String contentType, InputStream uploadedFile) {}
 
     public record MessageRequest(String role, String content) {}
 
     public record ErrorResponse(String message) {}
+
+    private boolean isValidFile(FileUpload file) {
+        return file != null && isValidFileType(file.contentType);
+    }
+
+    private boolean isValidFileType(String contentType) {
+        return contentType != null && (
+                contentType.equals("application/pdf") ||
+                        contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document") ||
+                        contentType.equals("application/msword")
+        );
+    }
+
+
 }
 
