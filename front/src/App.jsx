@@ -1,38 +1,62 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { useState } from 'react';
 import { Sidebar } from './pages/home/Sidebar';
 import { Main } from './pages/home/Main';
-import DocumentQA from './pages/DocumentQA';
 import { darkModeBackground } from './shared/constants';
-import ChatAgent from './components/ChatAgent';
+import { useChats } from './hooks/useChats';
 
 const App = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [currentView, setCurrentView] = useState('document-qa'); // 'home' ou 'document-qa'
-  const [chats, setChats] = useState([
-    { id: 1, title: 'Análise Contrato_A.pdf', active: true },
-    { id: 2, title: 'Resumo Relatório_RH.pdf', active: false },
-    { id: 3, title: 'Docs Fiscais 2024.doc', active: false },
-  ]);
-
-  const fetchBack = async () => {
-    const response = await axios.get('http://localhost:8080/hello')
-    console.log(response.data)
-  }
-  useEffect(() => {
-    fetchBack();
-  }, [])
+  const [activeChatId, setActiveChatId] = useState(null);
+  
+  // Hook para gerenciar chats do backend
+  const { chats, isLoading, addChat, deleteChat } = useChats();
 
   const { pageBgAndText } = darkModeBackground(isDarkMode);
 
-  return (
-    <ChatAgent />
-  )
+  // Encontra o chat ativo
+  const activeChat = chats.find(chat => chat.id === activeChatId);
+
+  // Handler para criar novo chat
+  const handleNewChat = () => {
+    setActiveChatId(null); // Volta para tela de upload
+  };
+
+  // Handler quando upload é bem-sucedido
+  const handleChatCreated = (chatData) => {
+    addChat(chatData); // Adiciona à lista
+    setActiveChatId(chatData.id); // Ativa o novo chat
+  };
+
+  // Handler para selecionar chat
+  const handleSelectChat = (chatId) => {
+    setActiveChatId(chatId);
+  };
+
+  // Handler para deletar chat
+  const handleDeleteChat = async (chatId) => {
+    const success = await deleteChat(chatId);
+    if (success && chatId === activeChatId) {
+      setActiveChatId(null); // Se deletou o chat ativo, volta para upload
+    }
+  };
 
   return (
     <div className={`flex h-screen transition-colors ${pageBgAndText}`}>
-      <Sidebar chats={chats} isDarkMode={isDarkMode} />
-      <Main isDarkMode={isDarkMode}/>
+      <Sidebar 
+        chats={chats} 
+        activeChatId={activeChatId}
+        isDarkMode={isDarkMode} 
+        setIsDarkMode={setIsDarkMode}
+        onNewChat={handleNewChat}
+        onSelectChat={handleSelectChat}
+        onDeleteChat={handleDeleteChat}
+        isLoading={isLoading}
+      />
+      <Main 
+        isDarkMode={isDarkMode}
+        currentChat={activeChat}
+        onChatCreated={handleChatCreated}
+      />
     </div>
   );
 };

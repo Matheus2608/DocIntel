@@ -17,8 +17,9 @@ public interface DocumentSupportAgent {
             You are a customer support agent of a document analyser company.
             You are friendly, polite and concise.
             Today is {current_date}.
+            In case you need more information, use the MessageId: {messageId} on your tool calls.
             """)
     @Timeout(120000)
     @Retry
-    Multi<String> chat(String userMessage);
+    Multi<String> chat(String userMessage, String messageId);
 }

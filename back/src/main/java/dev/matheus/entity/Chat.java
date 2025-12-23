@@ -18,6 +18,9 @@ public class Chat extends PanacheEntityBase {
     @Column(name = "created_at", nullable = false)
     public LocalDateTime createdAt;
 
+    @Column(name = "title", nullable = false)
+    public String title;
+
     @Column(name = "updated_at", nullable = false)
     public LocalDateTime updatedAt;
 

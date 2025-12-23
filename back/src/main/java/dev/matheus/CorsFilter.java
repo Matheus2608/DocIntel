@@ -10,11 +10,14 @@ import jakarta.ws.rs.ext.Provider;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.container.PreMatching;
+import org.jboss.logging.Logger;
 
 @Provider
 @PreMatching
 @Priority(Priorities.AUTHENTICATION)
 public class CorsFilter implements ContainerRequestFilter, ContainerResponseFilter {
+
+    private static final Logger LOG = Logger.getLogger(CorsFilter.class);
 
     private static final String ALLOWED_ORIGIN = "http://localhost:5173";
     private static final String ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS, HEAD";
@@ -23,8 +26,15 @@ public class CorsFilter implements ContainerRequestFilter, ContainerResponseFilt
 
     @Override
     public void filter(ContainerRequestContext requestContext) {
+        String method = requestContext.getMethod();
+        String origin = requestContext.getHeaderString("Origin");
+        String path = requestContext.getUriInfo().getPath();
+
+        LOG.debugf("CORS filter - request: method=%s, path=%s, origin=%s", method, path, origin);
+
         // If it's a preflight request, abort with an empty OK response including the CORS headers
-        if ("OPTIONS".equalsIgnoreCase(requestContext.getMethod())) {
+        if ("OPTIONS".equalsIgnoreCase(method)) {
+            LOG.debugf("Handling preflight OPTIONS request for path=%s", path);
             Response.ResponseBuilder builder = Response.ok();
             MultivaluedMap<String, Object> headers = builder.build().getHeaders();
             headers.add("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
@@ -35,11 +45,15 @@ public class CorsFilter implements ContainerRequestFilter, ContainerResponseFilt
             headers.add("Access-Control-Expose-Headers", EXPOSED_HEADERS);
 
             requestContext.abortWith(builder.build());
+            LOG.debugf("Preflight request handled for path=%s", path);
         }
     }
 
     @Override
     public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) {
+        LOG.tracef("Adding CORS headers to response: status=%d, path=%s",
+                   responseContext.getStatus(), requestContext.getUriInfo().getPath());
+
         // Add CORS headers to all responses
         MultivaluedMap<String, Object> headers = responseContext.getHeaders();
         headers.putSingle("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
