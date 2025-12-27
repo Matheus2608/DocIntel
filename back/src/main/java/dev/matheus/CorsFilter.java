@@ -23,7 +23,7 @@ public class CorsFilter implements ContainerRequestFilter, ContainerResponseFilt
 
     @Override
     public void filter(ContainerRequestContext requestContext) {
-        // If it's a preflight request, abort with an empty OK response including the CORS headers
+        // Handle preflight OPTIONS requests
         if ("OPTIONS".equalsIgnoreCase(requestContext.getMethod())) {
             Response.ResponseBuilder builder = Response.ok();
             MultivaluedMap<String, Object> headers = builder.build().getHeaders();
@@ -33,13 +33,13 @@ public class CorsFilter implements ContainerRequestFilter, ContainerResponseFilt
             headers.add("Access-Control-Allow-Credentials", "true");
             headers.add("Access-Control-Max-Age", "3600");
             headers.add("Access-Control-Expose-Headers", EXPOSED_HEADERS);
-
             requestContext.abortWith(builder.build());
         }
     }
 
     @Override
     public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) {
+
         // Add CORS headers to all responses
         MultivaluedMap<String, Object> headers = responseContext.getHeaders();
         headers.putSingle("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
