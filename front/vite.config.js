@@ -10,4 +10,19 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    proxy: {
+      // Proxy para requisições HTTP do backend
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      // Proxy para WebSocket
+      '/document-support-agent': {
+        target: 'ws://localhost:8080',
+        ws: true,
+        changeOrigin: true,
+      },
+    },
+  },
 })

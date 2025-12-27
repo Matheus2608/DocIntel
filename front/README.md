@@ -1,18 +1,100 @@
-# React + Vite
+# DocIntel Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interface de chat para fazer perguntas sobre documentos PDF e Word usando IA.
 
-Currently, two official plugins are available:
+## 🚀 Tecnologias
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React 19** + **Vite** - Framework e build tool
+- **Tailwind CSS** - Estilização
+- **Lucide React** - Ícones
+- **WebSocket** - Comunicação em tempo real com IA
+
+## 📁 Estrutura do Projeto
+
+```
+src/
+├── components/       # Componentes UI
+│   ├── ChatMessage.jsx
+│   ├── Header.jsx
+│   ├── InputMessage.jsx
+│   ├── Main.jsx
+│   ├── Sidebar.jsx
+│   └── Upload.jsx
+├── hooks/           # Hooks customizados
+│   ├── useChats.js
+│   └── useWebSocketChat.js
+├── config.js        # Configurações centralizadas
+├── App.jsx
+└── main.jsx
+```
+
+## 🔧 Configuração
+
+1. Instale as dependências:
+```bash
+npm install
+```
+
+2. Configure as variáveis de ambiente criando um arquivo `.env`:
+```bash
+VITE_API_URL=http://localhost:8080/api/chats
+VITE_WS_URL=ws://localhost:8080
+```
+
+3. Inicie o servidor de desenvolvimento:
+```bash
+npm run dev
+```
+
+## 🎯 Funcionalidades
+
+- ✅ Upload de documentos (PDF, DOCX, TXT)
+- ✅ Chat em tempo real com IA via WebSocket
+- ✅ Histórico de conversas
+- ✅ Múltiplos chats simultâneos
+- ✅ Modo escuro/claro
+- ✅ Streaming de respostas da IA
+
+## 📦 Scripts Disponíveis
+
+- `npm run dev` - Inicia servidor de desenvolvimento
+- `npm run build` - Build para produção
+- `npm run preview` - Preview do build de produção
+- `npm run lint` - Executa linter
+
+## 🏗️ Arquitetura
+
+### Componentes
+
+- **App.jsx** - Componente raiz, gerencia estado global
+- **Sidebar** - Lista de chats e navegação
+- **Main** - Área principal (upload ou chat)
+- **ChatMessage** - Renderiza mensagens do chat
+- **Upload** - Drag & drop de arquivos
+- **InputMessage** - Campo de entrada de mensagens
+- **Header** - Cabeçalho com título do chat
+
+### Hooks Customizados
+
+- **useChats** - Gerencia lista de chats do backend
+- **useWebSocketChat** - Gerencia conexão WebSocket e mensagens
+
+### Configuração
+
+O arquivo `config.js` centraliza todas as configurações de URLs e funções utilitárias:
+- URLs da API REST e WebSocket
+- Helper para construir URLs do WebSocket
+- Classes CSS para modo escuro
+
+## 🔄 Fluxo de Dados
+
+1. Usuário faz upload de documento
+2. Backend cria um chat e retorna ID
+3. Frontend conecta ao WebSocket usando o chat ID
+4. Usuário envia mensagens via WebSocket
+5. IA responde em streaming
+6. Mensagens são armazenadas e persistidas
 
 ## React Compiler
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Este projeto usa o React Compiler para otimizações automáticas. Veja [documentação](https://react.dev/learn/react-compiler) para mais informações.
