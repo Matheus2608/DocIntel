@@ -1,9 +1,9 @@
-package dev.matheus;
+package dev.matheus.ai;
 
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
-import dev.matheus.rag.RagIngestion;
 import dev.matheus.service.ChatService;
+import dev.matheus.service.RetrievalInfoService;
 import io.quarkiverse.langchain4j.ToolBox;
 import io.smallrye.mutiny.Multi;
 import jakarta.enterprise.context.SessionScoped;
@@ -27,6 +27,7 @@ public interface DocumentSupportAgent {
             """)
     @Timeout(120000)
     @Retry
-    @ToolBox({ChatService.class, RagIngestion.class})
+    @SessionScoped
+    @ToolBox({ChatService.class, RetrievalInfoService.class})
     Multi<String> chat(@UserMessage String userMessage, @V("messageId") String messageId);
 }

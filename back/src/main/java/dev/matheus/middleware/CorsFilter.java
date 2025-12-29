@@ -1,4 +1,4 @@
-package dev.matheus;
+package dev.matheus.middleware;
 
 import jakarta.annotation.Priority;
 import jakarta.ws.rs.Priorities;

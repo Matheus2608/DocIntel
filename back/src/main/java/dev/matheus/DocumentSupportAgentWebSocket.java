@@ -1,6 +1,7 @@
 package dev.matheus;
 
 import dev.langchain4j.guardrail.InputGuardrailException;
+import dev.matheus.ai.DocumentSupportAgent;
 import dev.matheus.dto.ChatMessageResponse;
 import dev.matheus.entity.Chat;
 import dev.matheus.entity.DocumentFile;

@@ -9,7 +9,6 @@ import dev.matheus.entity.Chat;
 import dev.matheus.entity.ChatMessage;
 import dev.matheus.entity.DocumentFile;
 import dev.matheus.entity.RetrievalInfo;
-import dev.matheus.rag.RagIngestion;
 import dev.matheus.repository.ChatMessageRepository;
 import dev.matheus.repository.ChatRepository;
 import dev.matheus.repository.DocumentFileRepository;
@@ -37,7 +36,7 @@ public class ChatService {
     DocumentFileRepository documentFileRepository;
 
     @Inject
-    RagIngestion ragIngestion;
+    RetrievalInfoService retrievalInfoService;
 
     @Inject
     jakarta.persistence.EntityManager entityManager;
@@ -71,7 +70,7 @@ public class ChatService {
                 chat.id, documentFile.id, chat.title);
 
         Log.infof("Starting RAG ingestion for file=%s", fileName);
-        ragIngestion.ingestionOfHypotheticalQuestions(fileData);
+        retrievalInfoService.ingestionOfHypotheticalQuestions(fileData, fileName);
 
         return mapToChatResponse(chat);
     }
@@ -203,7 +202,7 @@ public class ChatService {
     }
 
 
-    @Tool("get-document-info")
+    @Tool("get document metadata")
     @Transactional
     public DocumentFileResponse getDocument(String chatId) {
         return documentFileRepository.findByChatId(chatId)
