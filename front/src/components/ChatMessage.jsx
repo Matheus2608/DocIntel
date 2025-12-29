@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { Bot, User } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Bot, User, EyeClosed } from 'lucide-react';
 import { getDarkModeClasses } from '../config';
+import RagModal from './RagModal';
 
 /**
  * Componente para exibir a lista de mensagens do chat
@@ -8,6 +9,8 @@ import { getDarkModeClasses } from '../config';
  */
 export const ChatMessage = ({ messages, isTyping, isDarkMode }) => {
     const messagesEndRef = useRef(null);
+    const [selectedChat, setSelectedChat] = useState(null)
+    const onCloseSelectedMessage = () => setSelectedChat(null);
 
     // Auto-scroll para a última mensagem
     useEffect(() => {
@@ -26,50 +29,63 @@ export const ChatMessage = ({ messages, isTyping, isDarkMode }) => {
                 </div>
             )}
 
-            {messages.map((m, i) => (
-                <div
-                    key={i}
-                    className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                    {m.role === 'assistant' && (
+            {messages.map((m, idx) =>
+                <div key={m.id ? m.id : idx} className="flex flex-col gap-1">
+                    <div
+                        className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                        {m.role === 'assistant' && (
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                <Bot className="w-5 h-5 text-white" />
+                            </div>
+                        )}
+
+                        <div
+                            className={`max-w-[75%] rounded-2xl px-4 py-3 ${m.role === 'user'
+                                ? 'bg-blue-600 text-white rounded-tr-sm'
+                                : 'bg-white text-gray-800 shadow-sm rounded-tl-sm border border-gray-200'
+                                }`}
+                        >
+                            <p className="text-sm whitespace-pre-wrap break-words">{m.text}</p>
+                        </div>
+
+                        {m.role === 'user' && (
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
+                                <User className="w-5 h-5 text-white" />
+                            </div>
+                        )}
+                    </div>
+                    {selectedChat === m.id ? (
+                        <RagModal onClose={onCloseSelectedMessage} messageId={m.id} />
+                    ) : (
+                        m.id && m.role === "user" && (
+                            <div onClick={() => setSelectedChat(m.id)} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} ${m.role === 'user' ? 'pr-11' : 'pl-11'}`}>
+                                <EyeClosed className="w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600" />
+                            </div>
+                        )
+                    )}
+                </div>
+            )
+            }
+
+            {
+                isTyping && (
+                    <div className="flex gap-3 justify-start">
                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
                             <Bot className="w-5 h-5 text-white" />
                         </div>
-                    )}
-
-                    <div
-                        className={`max-w-[75%] rounded-2xl px-4 py-3 ${m.role === 'user'
-                            ? 'bg-blue-600 text-white rounded-tr-sm'
-                            : 'bg-white text-gray-800 shadow-sm rounded-tl-sm border border-gray-200'
-                            }`}
-                    >
-                        <p className="text-sm whitespace-pre-wrap break-words">{m.text}</p>
-                    </div>
-
-                    {m.role === 'user' && (
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
-                            <User className="w-5 h-5 text-white" />
-                        </div>
-                    )}
-                </div>
-            ))}
-
-            {isTyping && (
-                <div className="flex gap-3 justify-start">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                        <Bot className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-gray-200">
-                        <div className="flex gap-1">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-gray-200">
+                            <div className="flex gap-1">
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             <div ref={messagesEndRef} />
-        </div>
+        </div >
     );
 };

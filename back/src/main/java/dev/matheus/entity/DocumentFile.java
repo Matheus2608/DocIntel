@@ -1,5 +1,6 @@
 package dev.matheus.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
@@ -15,6 +16,7 @@ public class DocumentFile extends PanacheEntityBase {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_id", nullable = false, unique = true)
+    @JsonIgnore // Prevent infinite recursion when serializing Chat.documentFile
     public Chat chat;
 
     @Column(name = "file_name", nullable = false)

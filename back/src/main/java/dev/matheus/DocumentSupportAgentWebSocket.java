@@ -81,7 +81,7 @@ public class DocumentSupportAgentWebSocket {
         Log.debugf("Message content: %s", message);
 
         try {
-            chatService.addUserMessage(chatId, message);
+            ChatMessageResponse userMessage = chatService.addUserMessage(chatId, message);
             Multi<String> response = documentSupportAgent.chat(message, chatId);
 
             return response
@@ -90,18 +90,38 @@ public class DocumentSupportAgentWebSocket {
                         String fullResponse = String.join("", chunks);
                         Log.debugf("AI response generated: chatId=%s, responseLength=%d",
                                 chatId, fullResponse.length());
-                        chatService.addAssistantMessage(chatId, fullResponse);
-                        return Multi.createFrom().iterable(chunks);
+                        var chatResponse = chatService.addAssistantMessage(chatId, fullResponse);
+                        chatService.saveEmptyRetrievalInfoIfNeeded(chatId, message);
+
+                        // Envia chunks durante o streaming + mensagem final com ID e conteúdo completo
+                        return Multi.createFrom().iterable(chunks)
+                                .onCompletion().continueWith(
+                                    String.format("{\"messageId\":\"%s\",\"content\":\"%s\",\"type\":\"complete\"}",
+                                        chatResponse.id(),
+                                        fullResponse.replace("\"", "\\\"").replace("\n", "\\n"))
+                                );
                     });
 
         } catch (InputGuardrailException e) {
             Log.errorf(e, "Input guardrail violation - chatId=%s: %s", chatId, e.getMessage());
-            chatService.addErrorMessage(chatId, "Input blocked by guardrails");
-            return Multi.createFrom().item("Sorry, I am unable to process your request at the moment. It's not something I'm allowed to do.");
+            String errorMessage = "Sorry, I am unable to process your request at the moment. It's not something I'm allowed to do.";
+            var errorResponse = chatService.addErrorMessage(chatId, "Input blocked by guardrails");
+            return Multi.createFrom().item(errorMessage)
+                    .onCompletion().continueWith(
+                        String.format("{\"messageId\":\"%s\",\"content\":\"%s\",\"type\":\"error\"}",
+                            errorResponse.id(),
+                            errorMessage.replace("\"", "\\\""))
+                    );
         } catch (Exception e) {
             Log.errorf(e, "Unexpected error in WebSocket - chatId=%s: %s", chatId, e.getMessage());
-            chatService.addErrorMessage(chatId, "Error: " + e.getMessage());
-            return Multi.createFrom().item("I ran into some problems. Please try again.");
+            String errorMessage = "I ran into some problems. Please try again.";
+            var errorResponse = chatService.addErrorMessage(chatId, "Error: " + e.getMessage());
+            return Multi.createFrom().item(errorMessage)
+                    .onCompletion().continueWith(
+                        String.format("{\"messageId\":\"%s\",\"content\":\"%s\",\"type\":\"error\"}",
+                            errorResponse.id(),
+                            errorMessage.replace("\"", "\\\""))
+                    );
         }
     }
 

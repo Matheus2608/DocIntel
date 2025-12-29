@@ -22,10 +22,15 @@ import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.matheus.dto.Question;
+import dev.matheus.dto.RetrievalInfoSaveRequest;
 import dev.matheus.service.ChatService;
+import dev.matheus.service.RetrievalInfoService;
 import io.quarkiverse.langchain4j.jaxrsclient.JaxRsHttpClientBuilder;
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.NotFoundException;
 
 import java.io.File;
 import java.net.URL;
@@ -51,14 +56,15 @@ public class RagIngestion {
     private static final String MODEL_EMBEDDING_TEXT = "text-embedding-3-small";
     private static final String PARAGRAPH_KEY = "PARAGRAPH";
 
-
     final EmbeddingStore<TextSegment> embeddingStore;
     final EmbeddingModel embeddingModel;
     final ChatService chatService;
+    final RetrievalInfoService retrievalInfoService;
     final Map<String, ContentRetriever> retrievers;
     final OpenAiChatModel openAiChatModel;
 
-    public RagIngestion(EmbeddingStore<TextSegment> embeddingStore, ChatService chatService) {
+    public RagIngestion(EmbeddingStore<TextSegment> embeddingStore, ChatService chatService, RetrievalInfoService retrievalInfoService) {
+        this.retrievalInfoService = retrievalInfoService;
         this.embeddingStore = embeddingStore;
         this.chatService = chatService;
         this.retrievers = new HashMap<>();
@@ -83,11 +89,8 @@ public class RagIngestion {
 
     @Tool("Retrieve relevant contents to answer document related questions")
     @Transactional
-    public String retrieveRelevantContents(String userQuestion) {
-
-        System.out.println(("-".repeat(100)));
-        System.out.println(("\nUSER QUESTION: ") + userQuestion);
-
+    public String retrieveRelevantContents(String userQuestion, String chatId) {
+        Log.infof("User question: %s", userQuestion);
 
         EmbeddingSearchResult<TextSegment> searchResults = embeddingStore.search(
                 EmbeddingSearchRequest.builder()
@@ -96,36 +99,57 @@ public class RagIngestion {
                         .queryEmbedding(embeddingModel.embed(userQuestion).content())
                         .build());
 
-//        ScoringModel scoringModel = getScoringModel();
-//
-//        searchResults.matches().forEach(match -> {
-//            double score = scoringModel.score(match.embedded().metadata().getString(PARAGRAPH_KEY), queryString).content();
-//
-//            System.out.println("\n-> Similarity: " + match.score() + " --- (Ranking score: " + score + ")\n" +
-//                    "\n" + "Embedded question: " + match.embedded().text() +
-//                    "\n" + "  About paragraph: " + match.embedded().metadata().getString(PARAGRAPH_KEY));
-//        });
+        List<Question> questions = searchResults.matches().stream()
+                .map(match -> new Question(
+                        userQuestion,
+                        match.embedded().metadata().getString(PARAGRAPH_KEY),
+                        match.score()
+                )).toList();
+
+        String messageId;
+        try {
+            messageId = chatService.getLastUserMessage(chatId).id();
+        } catch (NotFoundException ex) {
+            Log.warnf("No previous user message found for chatId=%s. Skipping retrieval info save.", chatId);
+            return "No information found.";
+        }
+
+        retrievalInfoService.saveRetrievalInfo(new RetrievalInfoSaveRequest(
+                messageId,
+                userQuestion,
+                questions
+        ));
+
+        if (questions.isEmpty()) {
+            Log.warnf("No relevant contents found for user question='%s'", userQuestion);
+            return "No relevant contents found.";
+        }
 
         String concatenatedExtracts = searchResults.matches().stream()
                 .map(match -> match.embedded().metadata().getString(PARAGRAPH_KEY))
                 .distinct()
                 .collect(Collectors.joining("\n---\n", "\n---\n", "\n---\n"));
 
-//        UserMessage userMessage = PromptTemplate.from("""
-//                You must answer the following question:
-//
-//                {{question}}
-//
-//                Base your answer on the following documentation extracts:
-//
-//                {{extracts}}
-//                """).apply(Map.of(
-//                "question", queryString,
-//                "extracts", concatenatedExtracts
-//        )).toUserMessage();
-
         System.out.println("\nResponse:\n" + concatenatedExtracts + "\n");
         return concatenatedExtracts;
+    }
+
+    public List<Question> retrieveQuestions(String userQuestion) {
+        Log.infof("User question: %s", userQuestion);
+
+        EmbeddingSearchResult<TextSegment> searchResults = embeddingStore.search(
+                EmbeddingSearchRequest.builder()
+                        .maxResults(4)
+                        .minScore(0.7)
+                        .queryEmbedding(embeddingModel.embed(userQuestion).content())
+                        .build());
+
+        return searchResults.matches().stream()
+                .map(match -> new Question(
+                        match.embedded().text(),
+                        match.embedded().metadata().getString(PARAGRAPH_KEY),
+                        match.score()
+                )).toList();
     }
 
     public void ingestionOfHypotheticalQuestions(byte[] docBytes) {

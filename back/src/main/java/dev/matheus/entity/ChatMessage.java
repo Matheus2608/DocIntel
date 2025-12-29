@@ -1,5 +1,6 @@
 package dev.matheus.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
@@ -15,6 +16,7 @@ public class ChatMessage extends PanacheEntityBase {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_id", nullable = false)
+    @JsonIgnore // Prevent infinite recursion when serializing Chat.messages
     public Chat chat;
 
     @Column(name = "role", nullable = false, length = 20)
@@ -25,6 +27,10 @@ public class ChatMessage extends PanacheEntityBase {
 
     @Column(name = "created_at", nullable = false)
     public LocalDateTime createdAt;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "retrieval_info_id")
+    public RetrievalInfo retrievalInfo;
 
     @PrePersist
     public void prePersist() {

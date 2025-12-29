@@ -3,11 +3,12 @@ import { Sidebar } from './components/Sidebar';
 import { Main } from './components/Main';
 import { getDarkModeClasses } from './config';
 import { useChats } from './hooks/useChats';
+import RagModal from './components/RagModal';
 
 const App = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [activeChatId, setActiveChatId] = useState(null);
-  
+
   // Hook para gerenciar chats do backend
   const { chats, isLoading, addChat, deleteChat } = useChats();
 
@@ -42,17 +43,17 @@ const App = () => {
 
   return (
     <div className={`flex h-screen transition-colors ${pageBgAndText}`}>
-      <Sidebar 
-        chats={chats} 
+      <Sidebar
+        chats={chats}
         activeChatId={activeChatId}
-        isDarkMode={isDarkMode} 
+        isDarkMode={isDarkMode}
         setIsDarkMode={setIsDarkMode}
         onNewChat={handleNewChat}
         onSelectChat={handleSelectChat}
         onDeleteChat={handleDeleteChat}
         isLoading={isLoading}
       />
-      <Main 
+      <Main
         isDarkMode={isDarkMode}
         currentChat={activeChat}
         onChatCreated={handleChatCreated}

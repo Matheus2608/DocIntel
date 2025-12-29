@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { ChatMessage } from './ChatMessage';
 import { Header } from './Header';
 import { InputMessage } from './InputMessage';
@@ -9,15 +8,10 @@ import { getWebSocketUrl } from '../config';
 export const Main = ({ isDarkMode, currentChat, onChatCreated }) => {
     const wsUrl = getWebSocketUrl(currentChat?.id);
 
-    const { messages, isConnected, isTyping, sendMessage, clearMessages } = useWebSocketChat(
+    const { messages, isConnected, isTyping, sendMessage } = useWebSocketChat(
         currentChat?.id,
         wsUrl
     );
-
-    // Limpa mensagens quando troca de chat
-    useEffect(() => {
-        clearMessages();
-    }, [currentChat?.id]);
 
     // Callback quando o upload for bem-sucedido
     const handleUploadSuccess = (chatData) => {

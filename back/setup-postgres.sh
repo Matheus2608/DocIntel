@@ -82,6 +82,17 @@ CREATE EXTENSION IF NOT EXISTS vector;
 SELECT extname, extversion FROM pg_extension WHERE extname = 'vector';
 EOF
 
+echo -e "${YELLOW}Aplicando schema do banco de dados...${NC}"
+
+# Aplicar o schema do banco
+if [ -f "database_schema.sql" ]; then
+    sudo -u postgres psql -d meu_banco -f database_schema.sql
+    echo -e "${GREEN}Schema aplicado com sucesso!${NC}"
+else
+    echo -e "${RED}Arquivo database_schema.sql não encontrado!${NC}"
+    echo -e "${YELLOW}Execute este script no diretório que contém o arquivo database_schema.sql${NC}"
+fi
+
 echo -e "${GREEN}================================================${NC}"
 echo -e "${GREEN}Configuração concluída com sucesso!${NC}"
 echo -e "${GREEN}================================================${NC}"

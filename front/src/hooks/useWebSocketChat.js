@@ -20,8 +20,10 @@ export const useWebSocketChat = (chatId, wsUrl) => {
             if (response.ok) {
                 const pastMessages = await response.json();
                 const formattedMessages = pastMessages.map(msg => ({
+                    id: msg.id,
+                    createdAt: msg.createdAt,
                     role: msg.role,
-                    text: msg.content
+                    text: msg.content,
                 }));
                 setMessages(formattedMessages);
             }
@@ -30,9 +32,94 @@ export const useWebSocketChat = (chatId, wsUrl) => {
         }
     };
 
+    // Atualiza a última mensagem do usuário com o ID recebido
+    const updateLastUserMessageWithId = (messages, messageId) => {
+        let lastUserMessageIdx = null;
+        for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role === 'user') {
+                lastUserMessageIdx = i;
+                break;
+            }
+        }
+        if (lastUserMessageIdx === null) return messages;
+
+        const messagesBefore = messages.slice(0, lastUserMessageIdx);
+        const messagesAfter = messages.slice(lastUserMessageIdx + 1);
+        console.log("messages before = ", messagesBefore)
+        console.log("messages after = ", messagesAfter)
+
+        const response = messagesBefore.concat({
+            ...messages[lastUserMessageIdx],
+            id: messageId
+        }).concat(messagesAfter);
+        console.log("updated messages = ", response)
+        return response;
+    };
+
+    // Verifica se é uma mensagem de sistema (boas-vindas ou erro)
+    const isSystemMessage = (text) => {
+        return text.includes('Welcome to DocIntel') ||
+               text.includes('Sorry, I am unable to process') ||
+               text.includes('I ran into some problems');
+    };
+
+    // Adiciona mensagem de sistema
+    const handleSystemMessage = (messageText) => {
+        setIsTyping(false);
+        setMessages(prev => [...prev, { role: 'assistant', text: messageText }]);
+        currentStreamRef.current = null;
+    };
+
+    // Inicia o streaming de uma nova resposta
+    const startStreaming = (messageText) => {
+        setIsTyping(false);
+        currentStreamRef.current = { role: 'assistant', text: messageText };
+        setMessages(prev => [...prev, currentStreamRef.current]);
+    };
+
+    // Continua o streaming adicionando mais texto
+    const continueStreaming = (messageText) => {
+        setIsTyping(false);
+        currentStreamRef.current.text += messageText;
+        setMessages(prev => [...prev.slice(0, -1), { ...currentStreamRef.current }]);
+    };
+
+    // Handler principal das mensagens do WebSocket
+    const handleWebSocketMessage = (event) => {
+        const messageText = event.data;
+
+        // Tenta fazer parse como JSON (mensagem completa)
+        try {
+            const parsedMessage = JSON.parse(messageText);
+            
+            setMessages(prev => updateLastUserMessageWithId(prev, parsedMessage.messageId));
+            setIsTyping(false);
+            currentStreamRef.current = null;
+            return;
+        } catch (e) {
+            // Não é JSON, continua com o processamento de streaming
+        }
+
+        // Mensagens de sistema (boas-vindas ou erros)
+        if (isSystemMessage(messageText)) {
+            handleSystemMessage(messageText);
+            return;
+        }
+
+        // Streaming de resposta (chunks de texto)
+        if (!currentStreamRef.current) {
+            startStreaming(messageText);
+        } else {
+            continueStreaming(messageText);
+        }
+    };
+
     // Conecta ao WebSocket quando há um chatId
     useEffect(() => {
-        if (!chatId || !wsUrl) return;
+        if (!chatId || !wsUrl) {
+            setMessages([]);
+            return;
+        }
 
         let shouldStop = false;
 
@@ -44,34 +131,12 @@ export const useWebSocketChat = (chatId, wsUrl) => {
                 setIsConnected(true);
             };
 
-            wsRef.current.onmessage = (event) => {
-                const messageText = event.data;
-
-                // Mensagem de boas-vindas ou erro
-                if (messageText.includes('Welcome to DocIntel') ||
-                    messageText.includes('Sorry, I am unable to process') ||
-                    messageText.includes('I ran into some problems')) {
-                    setIsTyping(false);
-                    setMessages(prev => [...prev, { role: 'assistant', text: messageText }]);
-                    currentStreamRef.current = null;
-                    return;
-                }
-
-                // Streaming de resposta
-                setIsTyping(false);
-                if (!currentStreamRef.current) {
-                    currentStreamRef.current = { role: 'assistant', text: messageText };
-                    setMessages(prev => [...prev, currentStreamRef.current]);
-                } else {
-                    currentStreamRef.current.text += messageText;
-                    setMessages(prev => [...prev.slice(0, -1), { ...currentStreamRef.current }]);
-                }
-            };
+            wsRef.current.onmessage = handleWebSocketMessage;
 
             wsRef.current.onclose = () => {
                 setIsConnected(false);
                 currentStreamRef.current = null;
-                
+
                 if (!shouldStop) {
                     setTimeout(() => {
                         reconnectDelayRef.current = Math.min(30000, reconnectDelayRef.current * 2);
@@ -122,7 +187,6 @@ export const useWebSocketChat = (chatId, wsUrl) => {
         messages,
         isConnected,
         isTyping,
-        sendMessage,
-        clearMessages: () => setMessages([])
+        sendMessage
     };
 };

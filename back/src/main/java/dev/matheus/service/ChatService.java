@@ -8,6 +8,7 @@ import dev.matheus.dto.DocumentFileResponse;
 import dev.matheus.entity.Chat;
 import dev.matheus.entity.ChatMessage;
 import dev.matheus.entity.DocumentFile;
+import dev.matheus.entity.RetrievalInfo;
 import dev.matheus.rag.RagIngestion;
 import dev.matheus.repository.ChatMessageRepository;
 import dev.matheus.repository.ChatRepository;
@@ -38,10 +39,13 @@ public class ChatService {
     @Inject
     RagIngestion ragIngestion;
 
+    @Inject
+    jakarta.persistence.EntityManager entityManager;
+
     @Transactional
     public ChatResponse createChat(byte[] fileData, String fileName, String fileType) {
         LOG.infof("Creating chat with document: fileName=%s, fileType=%s, size=%d bytes",
-                  fileName, fileType, fileData != null ? fileData.length : 0);
+                fileName, fileType, fileData != null ? fileData.length : 0);
 
         if (fileData == null) {
             LOG.error("Attempted to create chat with null file data");
@@ -64,7 +68,7 @@ public class ChatService {
 
         chatRepository.persist(chat);
         LOG.infof("Chat created successfully: chatId=%s, documentId=%s, title=%s",
-                  chat.id, documentFile.id, chat.title);
+                chat.id, documentFile.id, chat.title);
 
         Log.infof("Starting RAG ingestion for file=%s", fileName);
         ragIngestion.ingestionOfHypotheticalQuestions(fileData);
@@ -114,9 +118,42 @@ public class ChatService {
         }
     }
 
+    public ChatMessageResponse getLastUserMessage(String chatId) {
+        LOG.debugf("Fetching last user message for chat: chatId=%s", chatId);
+        return chatMessageRepository.findLastUserMessageByChatId(chatId)
+                .map(this::mapToChatMessageResponse)
+                .orElseThrow(() -> {
+                    LOG.warnf("No user messages found for chat: chatId=%s", chatId);
+                    return new NotFoundException("No user messages found for this chat");
+                });
+    }
+
+    public void saveEmptyRetrievalInfoIfNeeded(String chatId, String userQuestion) {
+        var lastMessage = chatMessageRepository.findLastUserMessageByChatId(chatId)
+                .orElseThrow(() -> {
+                    LOG.warnf("No user messages found for chat: chatId=%s", chatId);
+                    return new NotFoundException("No user messages found for this chat");
+                });
+
+        if (lastMessage.retrievalInfo == null) {
+            Log.infof("No RetrievalInfo found for last user message ID: %s. Saving empty RetrievalInfo.",
+                    lastMessage.id);
+
+            RetrievalInfo info = new RetrievalInfo();
+            info.userQuestion = userQuestion;
+
+            lastMessage.retrievalInfo = info;
+            chatMessageRepository.persist(lastMessage);
+            Log.infof("Empty RetrievalInfo saved for ChatMessage ID: %s", lastMessage.id);
+        }
+    }
+
     @Transactional
     public ChatMessageResponse addUserMessage(String chatId, String content) {
-        return addMessage(chatId, "user", content);
+        ChatMessageResponse response = addMessage(chatId, "user", content);
+        entityManager.flush(); // Force immediate commit to database
+        LOG.debugf("User message flushed to database: chatId=%s, messageId=%s", chatId, response.id());
+        return response;
     }
 
     @Transactional
@@ -131,7 +168,7 @@ public class ChatService {
 
     private ChatMessageResponse addMessage(String chatId, String role, String content) {
         LOG.infof("Adding message to chat: chatId=%s, role=%s, contentLength=%d",
-                  chatId, role, content != null ? content.length() : 0);
+                chatId, role, content != null ? content.length() : 0);
 
         try {
             Chat chat = chatRepository.findByIdOptional(chatId)
