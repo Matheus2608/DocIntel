@@ -23,6 +23,7 @@ import dev.matheus.entity.HypoteticalQuestion;
 import dev.matheus.entity.RetrievalInfo;
 import dev.matheus.repository.RetrievalInfoRepository;
 import io.quarkiverse.langchain4j.jaxrsclient.JaxRsHttpClientBuilder;
+import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
@@ -98,11 +99,19 @@ public class RetrievalInfoService {
                         .build());
 
         List<Question> questions = searchResults.matches().stream()
-                .map(match -> new Question(
-                        match.embedded().text(),
-                        match.embedded().metadata().getString(PARAGRAPH_KEY),
-                        match.score()
-                )).toList();
+                .collect(Collectors.toMap(
+                        match -> match.embedded().metadata().getString(PARAGRAPH_KEY),
+                        match -> new Question(
+                                match.embedded().text(),
+                                match.embedded().metadata().getString(PARAGRAPH_KEY),
+                                match.score()
+                        ),
+                        (existing, replacement) -> existing // mantém o primeiro em caso de duplicata
+                ))
+                .values()
+                .stream()
+                .toList();
+
 
         String messageId;
         try {
@@ -125,12 +134,12 @@ public class RetrievalInfoService {
 
         String concatenatedExtracts = searchResults.matches().stream()
                 .map(match -> match.embedded().metadata().getString(PARAGRAPH_KEY))
-                .distinct()
                 .collect(Collectors.joining("\n---\n", "\n---\n", "\n---\n"));
 
         System.out.println("\nResponse:\n" + concatenatedExtracts + "\n");
         return concatenatedExtracts;
     }
+
 
     @Transactional
     public void saveRetrievalInfo(RetrievalInfoSaveRequest request) {
