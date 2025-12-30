@@ -56,15 +56,12 @@ public class RetrievalInfoService {
     final EmbeddingStore<TextSegment> embeddingStore;
     final EmbeddingModel embeddingModel;
     final ChatService chatService;
-    final RetrievalInfoService retrievalInfoService;
     final Map<String, ContentRetriever> retrievers;
     final OpenAiChatModel openAiChatModel;
 
     public RetrievalInfoService(EmbeddingStore<TextSegment> embeddingStore, 
                                 ChatService chatService, 
-                                RetrievalInfoService retrievalInfoService,
                                 RetrievalInfoRepository repository) {
-        this.retrievalInfoService = retrievalInfoService;
         this.embeddingStore = embeddingStore;
         this.chatService = chatService;
         this.repository = repository;
@@ -102,7 +99,7 @@ public class RetrievalInfoService {
 
         List<Question> questions = searchResults.matches().stream()
                 .map(match -> new Question(
-                        userQuestion,
+                        match.embedded().text(),
                         match.embedded().metadata().getString(PARAGRAPH_KEY),
                         match.score()
                 )).toList();
@@ -115,7 +112,7 @@ public class RetrievalInfoService {
             return "No information found.";
         }
 
-        retrievalInfoService.saveRetrievalInfo(new RetrievalInfoSaveRequest(
+        saveRetrievalInfo(new RetrievalInfoSaveRequest(
                 messageId,
                 userQuestion,
                 questions
@@ -167,6 +164,8 @@ public class RetrievalInfoService {
             chatMessage.retrievalInfo = retrievalInfo;
 
             // Just set the relationship - cascade will handle persistence
+            repository.persist(chatMessage);
+
             Log.infof("RetrievalInfo saved successfully for ChatMessage ID: %s with %d questions",
                      request.chatMessageId(), questions.size());
         } catch (Exception e) {
