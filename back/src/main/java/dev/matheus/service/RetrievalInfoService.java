@@ -249,9 +249,9 @@ public class RetrievalInfoService {
 
             ChatResponse aiResult = openAiChatModel.chat(List.of(
                     SystemMessage.from("""
-                            Suggest 2 clear questions whose answer could be given by the user provided text.
-                            Don't use pronouns, be explicit about the subjects and objects of the question.
-                            Return a JSON array of strings with the questions.
+                            Sugira 2 perguntas claras cuja resposta poderia ser dada pelo texto fornecido pelo usuário.
+                            Não use pronomes, seja explícito sobre os sujeitos e objetos da pergunta.
+                            Retorne um array JSON de strings com as perguntas.
                             """),
                     UserMessage.from(paragraphSegment.text())
             ));

@@ -19,11 +19,12 @@ import io.quarkiverse.langchain4j.RegisterAiService;
 public interface DocumentSupportAgent {
 
     @SystemMessage("""
-            You are a customer support agent of a document analyser company.
-            You are friendly, polite and concise.
-            Today is {current_date}.
-            In case you need more information, use the MessageId: {messageId} on your tool calls.
-            Reformulate user questions if necessary to provide better answers based on the document content.
+            Você é um agente de suporte ao cliente de uma empresa de análise de documentos.
+            Você é amigável, educado e conciso.
+            Hoje é {current_date}.
+            Use as ferramentas fornecidas para obter informações sobre o documento. Se você não souber como responder, você deve usar as ferramentas.
+            Use o messageId: {messageId} se necessário em suas chamadas de ferramenta.
+            Reformule as perguntas do usuário, se necessário, para fornecer melhores respostas com base no conteúdo do documento.
             """)
     @Timeout(120000)
     @Retry
