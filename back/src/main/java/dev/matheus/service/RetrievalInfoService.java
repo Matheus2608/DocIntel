@@ -18,6 +18,7 @@ import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.matheus.dto.Question;
 import dev.matheus.dto.RetrievalInfoSaveRequest;
 import dev.matheus.entity.HypoteticalQuestion;
@@ -54,6 +55,7 @@ public class RetrievalInfoService {
     private static final String API_KEY = System.getenv("OPENAI_API_KEY");
     private static final String MODEL_EMBEDDING_TEXT = "text-embedding-3-small";
     private static final String PARAGRAPH_KEY = "PARAGRAPH";
+    private static final String FILE_NAME_KEY = "FILE_NAME";
 
     private static final String SYSTEM_PROMPT_FORMAT = """
             Sugira %s perguntas claras cuja resposta poderia ser dada pelo texto fornecido pelo usuário.
@@ -102,13 +104,24 @@ public class RetrievalInfoService {
     @Tool("Retrieve relevant contents to answer document related questions")
     @Transactional
     public String retrieveRelevantContents(String userQuestion, String chatId) {
-        Log.infof("User question: %s", userQuestion);
+        Log.infof("Retrieving relavant contents for question: %s", userQuestion);
+
+        String messageId;
+        String filename;
+        try {
+            messageId = chatService.getLastUserMessage(chatId).id();
+            filename = chatService.getDocument(messageId).fileName();
+        } catch (NotFoundException ex) {
+            Log.warnf("No previous user message or document found for chatId=%s. Skipping retrieval info save.", chatId);
+            return "No information found.";
+        }
 
         EmbeddingSearchResult<TextSegment> searchResults = embeddingStore.search(
                 EmbeddingSearchRequest.builder()
                         .maxResults(4)
                         .minScore(0.7)
                         .queryEmbedding(embeddingModel.embed(userQuestion).content())
+                        .filter(new IsEqualTo(FILE_NAME_KEY, filename))
                         .build());
 
         List<Question> questions = searchResults.matches().stream()
@@ -124,15 +137,6 @@ public class RetrievalInfoService {
                 .values()
                 .stream()
                 .toList();
-
-
-        String messageId;
-        try {
-            messageId = chatService.getLastUserMessage(chatId).id();
-        } catch (NotFoundException ex) {
-            Log.warnf("No previous user message found for chatId=%s. Skipping retrieval info save.", chatId);
-            return "No information found.";
-        }
 
         saveRetrievalInfo(new RetrievalInfoSaveRequest(
                 messageId,
@@ -221,7 +225,9 @@ public class RetrievalInfoService {
         String userQuestion = chatMessage.content;
         Log.infof("User question from message: %s", userQuestion);
 
-        List<Question> questions = retrieveQuestions(userQuestion);
+        String filename = chatService.getDocument(chatMessage.chat.id).fileName();
+
+        List<Question> questions = retrieveQuestions(userQuestion, filename);
         Log.infof("Retrieved %d questions for messageId=%s",
                 questions != null ? questions.size() : 0, chatMessageId);
 
@@ -239,7 +245,7 @@ public class RetrievalInfoService {
         );
     }
 
-    public List<Question> retrieveQuestions(String userQuestion) {
+    public List<Question> retrieveQuestions(String userQuestion, String filename) {
         Log.infof("User question: %s", userQuestion);
 
         EmbeddingSearchResult<TextSegment> searchResults = embeddingStore.search(
@@ -247,6 +253,7 @@ public class RetrievalInfoService {
                         .maxResults(4)
                         .minScore(0.7)
                         .queryEmbedding(embeddingModel.embed(userQuestion).content())
+                        .filter(new IsEqualTo(FILE_NAME_KEY, filename))
                         .build());
 
         return searchResults.matches().stream()
@@ -282,7 +289,10 @@ public class RetrievalInfoService {
         List<TextSegment> embeddedSegments = allQuestionParagraphs.stream()
                 .map(questionParagraph -> TextSegment.from(
                         questionParagraph.question(),
-                        new Metadata().put(PARAGRAPH_KEY, questionParagraph.paragraph().text())))
+                        new Metadata()
+                                .put(PARAGRAPH_KEY, questionParagraph.paragraph().text())
+                                .put(FILE_NAME_KEY, fileName)
+                ))
                 .toList();
 
         List<Embedding> embeddings = embeddingModel.embedAll(embeddedSegments).content();
