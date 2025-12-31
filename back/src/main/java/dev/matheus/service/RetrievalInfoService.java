@@ -6,6 +6,7 @@ import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.document.splitter.DocumentByParagraphSplitter;
 import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
@@ -22,6 +23,7 @@ import dev.matheus.dto.RetrievalInfoSaveRequest;
 import dev.matheus.entity.HypoteticalQuestion;
 import dev.matheus.entity.RetrievalInfo;
 import dev.matheus.repository.RetrievalInfoRepository;
+import dev.matheus.util.ChatUtils;
 import io.quarkiverse.langchain4j.jaxrsclient.JaxRsHttpClientBuilder;
 import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -36,21 +38,32 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static dev.matheus.util.ChatUtils.*;
+
 record QuestionParagraph(
         String question,
         TextSegment paragraph
-) { }
+) {
+}
 
 
 @ApplicationScoped
 public class RetrievalInfoService {
 
     private static final Logger Log = Logger.getLogger(ChatService.class);
-
-    private static final Gson gson = new Gson();
     private static final String API_KEY = System.getenv("OPENAI_API_KEY");
     private static final String MODEL_EMBEDDING_TEXT = "text-embedding-3-small";
     private static final String PARAGRAPH_KEY = "PARAGRAPH";
+
+    private static final String SYSTEM_PROMPT_FORMAT = """
+            Sugira %s perguntas claras cuja resposta poderia ser dada pelo texto fornecido pelo usuário.
+            Não use pronomes, seja explícito sobre os sujeitos e objetos da pergunta.
+            Retorne um array JSON de strings com as perguntas.
+            """;
+
+    private static final String USER_PROMPT_FORMAT = """
+            Texto:\n%s
+            """;
 
 
     final RetrievalInfoRepository repository;
@@ -60,8 +73,8 @@ public class RetrievalInfoService {
     final Map<String, ContentRetriever> retrievers;
     final OpenAiChatModel openAiChatModel;
 
-    public RetrievalInfoService(EmbeddingStore<TextSegment> embeddingStore, 
-                                ChatService chatService, 
+    public RetrievalInfoService(EmbeddingStore<TextSegment> embeddingStore,
+                                ChatService chatService,
                                 RetrievalInfoRepository repository) {
         this.embeddingStore = embeddingStore;
         this.chatService = chatService;
@@ -176,7 +189,7 @@ public class RetrievalInfoService {
             repository.persist(chatMessage);
 
             Log.infof("RetrievalInfo saved successfully for ChatMessage ID: %s with %d questions",
-                     request.chatMessageId(), questions.size());
+                    request.chatMessageId(), questions.size());
         } catch (Exception e) {
             Log.errorf(e, "Error saving RetrievalInfo for ChatMessage ID: %s", request.chatMessageId());
             throw e;
@@ -210,7 +223,7 @@ public class RetrievalInfoService {
 
         List<Question> questions = retrieveQuestions(userQuestion);
         Log.infof("Retrieved %d questions for messageId=%s",
-                 questions != null ? questions.size() : 0, chatMessageId);
+                questions != null ? questions.size() : 0, chatMessageId);
 
         if (questions == null || questions.isEmpty()) {
             Log.warnf("No questions retrieved for ChatMessage ID: %s", chatMessageId);
@@ -250,23 +263,16 @@ public class RetrievalInfoService {
         Document document = toDocument(docBytes);
         List<QuestionParagraph> allQuestionParagraphs = new ArrayList<>();
 
-        DocumentByParagraphSplitter splitter = new DocumentByParagraphSplitter(2000, 100);
+        DocumentByParagraphSplitter splitter = new DocumentByParagraphSplitter(1000, 20);
         List<TextSegment> paragraphs = splitter.split(document);
 
         for (TextSegment paragraphSegment : paragraphs) {
             Log.infof("Processing paragraph: %s for document %s", paragraphSegment.text(), fileName);
 
-            ChatResponse aiResult = openAiChatModel.chat(List.of(
-                    SystemMessage.from("""
-                            Sugira 2 perguntas claras cuja resposta poderia ser dada pelo texto fornecido pelo usuário.
-                            Não use pronomes, seja explícito sobre os sujeitos e objetos da pergunta.
-                            Retorne um array JSON de strings com as perguntas.
-                            """),
-                    UserMessage.from(paragraphSegment.text())
-            ));
+            ChatResponse aiResult = openAiChatModel.chat(generateChatMessage(paragraphSegment.text()));
 
             String[] questions = toCleanedQuestions(aiResult.aiMessage().text());
-            
+
             for (String question : questions) {
                 Log.infof("Generated question: %s", question);
                 allQuestionParagraphs.add(new QuestionParagraph(question, paragraphSegment));
@@ -285,20 +291,12 @@ public class RetrievalInfoService {
         Log.infof("Successfully ingested %d hypothetical questions for document %s", allQuestionParagraphs.size(), fileName);
     }
 
-    private Document toDocument(byte[] docBytes) {
-        String documentText = new String(docBytes, StandardCharsets.UTF_8);
-        return Document.from(documentText);
+    private List<ChatMessage> generateChatMessage(String paragraph) {
+        int numberOfQuestions = getNumberQuestions(paragraph);
+        return List.of(
+                SystemMessage.from(String.format(SYSTEM_PROMPT_FORMAT, numberOfQuestions)),
+                UserMessage.from(String.format(USER_PROMPT_FORMAT, paragraph))
+        );
     }
 
-    private String[] toCleanedQuestions(String responseText) {
-        // Remover markdown se houver
-        String cleanedText = responseText.strip();
-        if (cleanedText.startsWith("```json")) {
-            cleanedText = cleanedText.substring(7).strip();
-        }
-        if (cleanedText.endsWith("```")) {
-            cleanedText = cleanedText.substring(0, cleanedText.length() - 3).strip();
-        }
-        return gson.fromJson(cleanedText, String[].class);
-    }
 }

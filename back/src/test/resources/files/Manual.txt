@@ -1,0 +1,68 @@
+MANUAL DO COLABORADOR - TECHINOVA SOLUTIONS (VERSÃO 2024.1)
+
+SEÇÃO 1: INTRODUÇÃO E CULTURA
+Bem-vindo à TechInova Solutions. Este manual serve como guia principal para as políticas, benefícios e expectativas de conduta da nossa organização. A TechInova valoriza a transparência, a inovação e o respeito mútuo. Espera-se que todos os colaboradores leiam este documento na íntegra dentro dos primeiros 15 dias de contratação.
+
+SEÇÃO 2: JORNADA DE TRABALHO E PONTO
+2.1. Horário Padrão
+O horário de trabalho padrão é das 09:00 às 18:00, de segunda a sexta-feira, com 1 hora de intervalo para almoço. A flexibilidade de horário pode ser acordada diretamente com o gestor imediato, desde que o "core time" (horário núcleo) entre 10:00 e 16:00 seja respeitado.
+
+2.2. Registro de Ponto
+Todos os colaboradores não isentos (cargos abaixo de gerência sênior) devem registrar seus horários de entrada, saída para almoço, retorno do almoço e saída final no sistema ChronosWeb.
+ATENÇÃO: Horas extras só serão pagas se pré-aprovadas por escrito pelo gestor da área com 24 horas de antecedência. O registro de ponto fora do horário sem aprovação resultará em advertência verbal na primeira ocorrência.
+
+SEÇÃO 3: POLÍTICA DE TRABALHO REMOTO E HÍBRIDO
+3.1. Elegibilidade
+O trabalho remoto é um privilégio, não um direito. Colaboradores são elegíveis para o modelo híbrido (3 dias no escritório, 2 dias em casa) após a conclusão bem-sucedida do Período de Experiência (ver Seção 4).
+
+3.2. Requisitos Técnicos e Segurança
+Para trabalhar remotamente, o colaborador deve garantir uma conexão de internet estável de, no mínimo, 50MB. É estritamente proibido o uso de redes Wi-Fi públicas (cafés, aeroportos) para acessar a VPN da empresa sem o uso de autenticação de dois fatores (2FA) e aprovação prévia do time de TI. O vazamento de dados decorrente do uso de redes inseguras é considerado falta grave.
+
+3.3. Equipamentos
+A TechInova fornece um notebook e um headset. Monitores adicionais ou cadeiras ergonômicas para home office são de responsabilidade do colaborador, embora a empresa ofereça um subsídio único de R$ 500,00 após 6 meses de casa para essa finalidade.
+
+SEÇÃO 4: CONTRATAÇÃO E PERÍODO DE EXPERIÊNCIA
+4.1. Duração
+O período de experiência padrão é de 90 dias. Durante este período, tanto a empresa quanto o colaborador podem rescindir o contrato sem necessidade de aviso prévio indenizado, conforme a legislação local.
+
+4.2. Avaliação
+No 45º e no 85º dia, o gestor realizará uma breve avaliação de desempenho. Colaboradores em período de experiência não são elegíveis para promoção ou transferência interna.
+
+SEÇÃO 5: FÉRIAS E AUSÊNCIAS
+5.1. Direito a Férias
+Após completar 12 meses de trabalho (período aquisitivo), o colaborador tem direito a 30 dias corridos de férias.
+REGRA IMPORTANTE: As férias podem ser divididas em até 3 períodos. Um dos períodos não pode ser inferior a 14 dias corridos, e os demais não podem ser inferiores a 5 dias corridos cada.
+
+5.2. Solicitação
+As férias devem ser solicitadas no sistema com, no mínimo, 45 dias de antecedência para períodos superiores a 10 dias, e 20 dias de antecedência para períodos menores. O gestor tem até 5 dias úteis para aprovar ou negar o pedido com base nas necessidades operacionais.
+
+5.3. Licença Médica (Atestados)
+Ausências por motivo de saúde de até 2 dias consecutivos devem ser comunicadas ao gestor imediato e ao RH via e-mail até às 10:00 do primeiro dia de ausência.
+Para ausências superiores a 3 dias consecutivos, é OBRIGATÓRIA a apresentação de atestado médico físico ou digital com CID (Código Internacional de Doenças) ao departamento de RH dentro de 48 horas após o início do afastamento. A falha em apresentar o atestado resultará em desconto dos dias na folha de pagamento.
+
+5.4. Licença Paternidade Estendida
+A TechInova oferece, além dos 5 dias previstos em lei, mais 15 dias de licença paternidade, totalizando 20 dias, desde que o colaborador participe do Programa de Paternidade Responsável da empresa antes do nascimento da criança.
+
+SEÇÃO 6: CÓDIGO DE CONDUTA E ÉTICA
+6.1. Conflito de Interesses
+Colaboradores não podem manter empregos paralelos, consultorias ou participação societária em empresas concorrentes diretas da TechInova. Qualquer atividade externa remunerada deve ser declarada ao RH para análise de conflito.
+
+6.2. Presentes e Hospitalidade
+É proibido aceitar presentes de fornecedores ou clientes com valor superior a R$ 150,00. Jantares ou eventos de negócios pagos por terceiros devem ser reportados ao gestor se ultrapassarem R$ 300,00 por pessoa.
+
+6.3. Uso de Redes Sociais
+Os colaboradores são livres para usar redes sociais pessoais, mas é estritamente proibido postar fotos do ambiente interno do escritório onde apareçam telas de computadores, quadros brancos com anotações ou documentos de clientes. Comentários depreciativos sobre a empresa, clientes ou colegas em redes públicas são passíveis de demissão por justa causa.
+
+SEÇÃO 7: BENEFÍCIOS
+7.1. Vale Refeição/Alimentação
+O benefício é pago mensalmente no dia 30, com um desconto de 2% em folha de pagamento. O valor diário é de R$ 45,00. Durante o período de férias, o colaborador continua recebendo o benefício integralmente.
+
+7.2. Plano de Saúde
+A empresa oferece plano de saúde (CobreTudo Nacional) sem coparticipação para o colaborador. A inclusão de dependentes (cônjuge e filhos até 21 anos, ou 24 se universitários) é permitida, com o colaborador arcando com 70% do custo do plano do dependente via desconto em folha. O plano de saúde só se torna ativo no primeiro dia do mês subsequente à data de contratação.
+
+7.3. Bônus de Desempenho (PLR)
+O bônus é pago anualmente em Março, baseado nos resultados do ano anterior. Para ser elegível, o colaborador deve estar ativo na empresa em 31 de Dezembro do ano de apuração e não ter recebido nenhuma advertência formal escrita por conduta ética durante o ano. Colaboradores admitidos após 1º de Outubro não são elegíveis ao bônus do ano corrente.
+
+SEÇÃO 8: ENCERRAMENTO DO CONTRATO
+Em caso de demissão voluntária (pedido de demissão), espera-se que o colaborador cumpra aviso prévio de 30 dias para garantir a transição adequada das funções. O não cumprimento do aviso resultará no desconto correspondente nas verbas rescisórias.
+A devolução de todos os equipamentos (notebook, headset, crachá) deve ocorrer no último dia de trabalho físico.
