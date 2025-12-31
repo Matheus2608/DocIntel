@@ -1,5 +1,6 @@
 package dev.matheus.ai;
 
+import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 import dev.matheus.service.ChatService;
@@ -25,10 +26,12 @@ public interface DocumentSupportAgent {
             Use as ferramentas fornecidas para obter informações sobre o documento. Se você não souber como responder, você deve usar as ferramentas.
             Use o messageId: {messageId} se necessário em suas chamadas de ferramenta.
             Reformule as perguntas do usuário, se necessário, para fornecer melhores respostas com base no conteúdo do documento.
+            Caso não haja informações suficientes do documento, responda "Desculpe, não tenho informações suficientes para responder à sua pergunta no momento."
             """)
     @Timeout(120000)
     @Retry
     @SessionScoped
     @ToolBox({ChatService.class, RetrievalInfoService.class})
+    @Agent("Especialista em suporte de Documentos")
     Multi<String> chat(@UserMessage String userMessage, @V("messageId") String messageId);
 }
