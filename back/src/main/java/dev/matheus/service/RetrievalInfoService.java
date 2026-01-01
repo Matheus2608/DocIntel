@@ -286,11 +286,18 @@ public class RetrievalInfoService {
         Log.infof("Ingesting hypothetical questions for document: %s", fileName);
 
         Document document = toDocument(docBytes);
-        List<QuestionParagraph> allQuestionParagraphs = new ArrayList<>();
-
         DocumentByParagraphSplitter splitter = new DocumentByParagraphSplitter(1000, 20);
-        List<TextSegment> paragraphs = splitter.split(document);
 
+        List<QuestionParagraph> questionParagraphs = parallelProcessing(splitter.split(document), fileName);
+        List<TextSegment> embeddedSegments = questionParagraphsToTextSegments(questionParagraphs, fileName);
+
+        List<Embedding> embeddings = embeddingModel.embedAll(embeddedSegments).content();
+        embeddingStore.addAll(embeddings, embeddedSegments);
+
+        Log.infof("Successfully ingested %d hypothetical questions for document %s", questionParagraphs.size(), fileName);
+    }
+
+    private List<QuestionParagraph> parallelProcessing(List<TextSegment> paragraphs, String fileName) {
         Log.infof("Starting parallel processing of %d paragraphs for document %s", paragraphs.size(), fileName);
 
         // Create CompletableFuture for each paragraph to process them in parallel
@@ -315,23 +322,26 @@ public class RetrievalInfoService {
         // Wait for all futures to complete and collect results
         CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
 
+        List<QuestionParagraph> result = new ArrayList<>();
         try {
             // Block until all tasks complete
             allOf.join();
-
             // Collect all results maintaining order
             for (CompletableFuture<List<QuestionParagraph>> future : futures) {
-                allQuestionParagraphs.addAll(future.join());
+                result.addAll(future.join());
             }
-
             Log.infof("Completed parallel processing. Generated %d questions for document %s",
-                    allQuestionParagraphs.size(), fileName);
+                    result.size(), fileName);
         } catch (Exception e) {
             Log.errorf(e, "Error during parallel question generation for document %s", fileName);
             throw new RuntimeException("Failed to generate hypothetical questions", e);
         }
 
-        List<TextSegment> embeddedSegments = allQuestionParagraphs.stream()
+        return result;
+    }
+
+    private List<TextSegment> questionParagraphsToTextSegments(List<QuestionParagraph> questionParagraphs, String fileName) {
+        return questionParagraphs.stream()
                 .map(questionParagraph -> TextSegment.from(
                         questionParagraph.question(),
                         new Metadata()
@@ -339,11 +349,6 @@ public class RetrievalInfoService {
                                 .put(FILE_NAME_KEY, fileName)
                 ))
                 .toList();
-
-        List<Embedding> embeddings = embeddingModel.embedAll(embeddedSegments).content();
-        embeddingStore.addAll(embeddings, embeddedSegments);
-
-        Log.infof("Successfully ingested %d hypothetical questions for document %s", allQuestionParagraphs.size(), fileName);
     }
 
     private List<ChatMessage> generateChatMessage(String paragraph) {
