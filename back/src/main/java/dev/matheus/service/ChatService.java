@@ -1,5 +1,6 @@
 package dev.matheus.service;
 
+import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.matheus.dto.ChatListResponse;
 import dev.matheus.dto.ChatMessageResponse;
@@ -19,12 +20,14 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import org.jboss.logging.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
 public class ChatService {
 
     private static final Logger LOG = Logger.getLogger(ChatService.class);
+    private static final int MAX_CONVERSATION_HISTORY = 10; // Keep last 10 messages (5 exchanges)
 
     @Inject
     ChatRepository chatRepository;
@@ -202,6 +205,66 @@ public class ChatService {
                 .toList();
     }
 
+    @Tool(value = "Retrieves a range of USER messages from the chat history. Example: getRecentUserMessages(chatId, 0, 5) returns the first 5 USER messages")
+    public List<String> getRecentUserMessages(
+            @P("ID of the chat") String chatId,
+            @P("Starting index (0-based)") int startIdx,
+            @P("Ending index (exclusive)") int endIdx) {
+
+        LOG.debugf("Fetching recent USER conversation history for chat: chatId=%s", chatId);
+
+        List<ChatMessage> allMessages = chatMessageRepository.findByChatId(chatId);
+
+        // Filter out system messages and welcome messages and last message (since is the current one seeing by AI)
+        List<ChatMessage> relevantMessages = allMessages.stream()
+                .filter(msg -> !msg.role.equals("system")) // Exclude system messages
+                .filter(msg -> !isWelcomeMessage(msg.content)) // Exclude welcome messages
+                .limit(Math.max(0, allMessages.size() - 1)) // Exclude last message
+                .toList();
+
+        List<String> result = relevantMessages.subList(startIdx, endIdx).stream()
+                .map(msg -> msg.content)
+                .toList();
+
+        LOG.debugf("Retrieving %s USER messages from chatId=%s", result.size(), chatId);
+        return result;
+    }
+
+    @Tool(value = "Retrieves a range of AI generated responses from the chat history. Example: getRecentAiResponses(chatId, 0, 5) returns the first 5 AI messages")
+    public List<String> getRecentAiResponses(
+            @P("ID of the chat") String chatId,
+            @P("Starting index (0-based)") int startIdx,
+            @P("Ending index (exclusive)") int endIdx) {
+
+        LOG.debugf("Fetching recent AI conversation history for chat: chatId=%s", chatId);
+
+        List<ChatMessage> allMessages = chatMessageRepository.findByChatId(chatId);
+
+        // Filter out user messages and welcome messages
+        List<ChatMessage> relevantMessages = allMessages.stream()
+                .filter(msg -> !msg.role.equals("user")) // Exclude system messages
+                .filter(msg -> !isWelcomeMessage(msg.content)) // Exclude welcome messages
+                .toList();
+
+        List<String> result = relevantMessages.subList(startIdx, endIdx).stream()
+                .map(msg -> msg.content)
+                .toList();
+
+        LOG.debugf("Retrieving %s AI messages from chatId=%s", result.size(), chatId);
+        return result;
+    }
+
+    /**
+     * Check if a message is a welcome message
+     */
+    private boolean isWelcomeMessage(String content) {
+        return content != null && (
+                content.contains("Bem vindo ao DocIntel") ||
+                        content.contains("É muito bom ter você de volta") ||
+                        content.contains("Welcome to DocIntel") ||
+                        content.contains("É necessário fazer upload")
+        );
+    }
 
     @Tool("get document metadata")
     @Transactional
