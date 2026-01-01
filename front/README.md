@@ -78,6 +78,11 @@ npm run dev
 
 - **useChats** - Gerencia lista de chats do backend
 - **useWebSocketChat** - Gerencia conexão WebSocket e mensagens
+  - Streaming em tempo real de respostas da IA
+  - Concatenação de chunks em única mensagem
+  - Reconexão automática com backoff exponencial
+  - Carregamento de histórico de mensagens
+  - Sincronização de IDs de mensagens do backend
 
 ### Configuração
 
@@ -92,8 +97,18 @@ O arquivo `config.js` centraliza todas as configurações de URLs e funções ut
 2. Backend cria um chat e retorna ID
 3. Frontend conecta ao WebSocket usando o chat ID
 4. Usuário envia mensagens via WebSocket
-5. IA responde em streaming
-6. Mensagens são armazenadas e persistidas
+5. IA responde em streaming (chunks de texto)
+6. Chunks são concatenados em uma única mensagem visual
+7. Backend envia JSON com IDs quando finaliza
+8. Mensagens são persistidas e sincronizadas
+
+### Streaming de Respostas
+
+O hook `useWebSocketChat` gerencia o streaming de forma inteligente:
+- Detecta chunks de texto vs mensagens JSON completas
+- Concatena chunks em tempo real na mesma bolha de mensagem
+- Atualiza IDs quando o backend confirma persistência
+- Mantém referência da mensagem sendo streamada para atualizações eficientes
 
 ## React Compiler
 
