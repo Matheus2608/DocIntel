@@ -147,11 +147,12 @@ public class ChatService {
         }
     }
 
-    @Transactional
-    public ChatMessageResponse addUserMessage(String chatId, String content) {
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public ChatMessageResponse addUserMessageAndCommit(String chatId, String content) {
         ChatMessageResponse response = addMessage(chatId, "user", content);
-        entityManager.flush(); // Force immediate commit to database
-        LOG.debugf("User message flushed to database: chatId=%s, messageId=%s", chatId, response.id());
+        entityManager.flush(); // Force flush to database
+        LOG.debugf("User message saved and committed in separate transaction: chatId=%s, messageId=%s",
+                chatId, response.id());
         return response;
     }
 

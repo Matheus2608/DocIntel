@@ -110,7 +110,7 @@ public class RetrievalInfoService {
         String filename;
         try {
             messageId = chatService.getLastUserMessage(chatId).id();
-            filename = chatService.getDocument(messageId).fileName();
+            filename = chatService.getDocument(chatId).fileName();  // Fixed: use chatId, not messageId
         } catch (NotFoundException ex) {
             Log.warnf("No previous user message or document found for chatId=%s. Skipping retrieval info save.", chatId);
             return "No information found.";

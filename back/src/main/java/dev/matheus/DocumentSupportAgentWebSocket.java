@@ -74,7 +74,6 @@ public class DocumentSupportAgentWebSocket {
 
     @OnTextMessage
     @RunOnVirtualThread
-    @Transactional
     public Multi<String> onTextMessage(String message, WebSocketConnection connection) {
         String chatId = connection.pathParam("chatId");
         Log.infof("Received message on WebSocket: chatId=%s, connectionId=%s, messageLength=%d",
@@ -82,7 +81,11 @@ public class DocumentSupportAgentWebSocket {
         Log.debugf("Message content: %s", message);
 
         try {
-            ChatMessageResponse userMessage = chatService.addUserMessage(chatId, message);
+            // Save user message in a separate transaction that will be committed immediately
+            ChatMessageResponse userMessage = chatService.addUserMessageAndCommit(chatId, message);
+            Log.debugf("User message committed to database before AI call: chatId=%s, messageId=%s",
+                    chatId, userMessage.id());
+
             Multi<String> response = documentSupportAgent.chat(message, chatId);
 
             return response
