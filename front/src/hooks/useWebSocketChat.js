@@ -34,6 +34,7 @@ export const useWebSocketChat = (chatId, wsUrl) => {
 
     // Atualiza a última mensagem do usuário com o ID recebido
     const updateLastUserMessageWithId = (messages, messageId) => {
+        console.log("Updating last user message with messages", messages, "and messageId", messageId);
         let lastUserMessageIdx = null;
         for (let i = messages.length - 1; i >= 0; i--) {
             if (messages[i].role === 'user') {
@@ -59,8 +60,8 @@ export const useWebSocketChat = (chatId, wsUrl) => {
     // Verifica se é uma mensagem de sistema (boas-vindas ou erro)
     const isSystemMessage = (text) => {
         return text.includes('Welcome to DocIntel') ||
-               text.includes('Sorry, I am unable to process') ||
-               text.includes('I ran into some problems');
+            text.includes('Sorry, I am unable to process') ||
+            text.includes('I ran into some problems');
     };
 
     // Adiciona mensagem de sistema
@@ -80,18 +81,30 @@ export const useWebSocketChat = (chatId, wsUrl) => {
     // Continua o streaming adicionando mais texto
     const continueStreaming = (messageText) => {
         setIsTyping(false);
-        currentStreamRef.current.text += messageText;
-        setMessages(prev => [...prev.slice(0, -1), { ...currentStreamRef.current }]);
+        const updatedText = currentStreamRef.current.text + messageText;
+        currentStreamRef.current.text = updatedText;
+        setMessages(prev => {
+            const newMessage = prev.slice(0, -1).concat({role: 'assistant', text: updatedText});
+            console.log("Updated streaming message:", newMessage);
+            return newMessage;
+        });
     };
 
     // Handler principal das mensagens do WebSocket
     const handleWebSocketMessage = (event) => {
         const messageText = event.data;
 
+        console.log("Received WebSocket message:", messageText);
+
         // Tenta fazer parse como JSON (mensagem completa)
         try {
             const parsedMessage = JSON.parse(messageText);
-            
+            console.log("Parsed WebSocket JSON message:", parsedMessage);
+            if (!parsedMessage.messageId || !parsedMessage.content) {
+                console.log("Invalid message format, missing fields");
+                throw new Error("Invalid message format");
+            }
+
             setMessages(prev => updateLastUserMessageWithId(prev, parsedMessage.messageId));
             setIsTyping(false);
             currentStreamRef.current = null;
@@ -164,6 +177,7 @@ export const useWebSocketChat = (chatId, wsUrl) => {
 
     // Envia mensagem pelo WebSocket
     const sendMessage = (text) => {
+        console.log("sendMessage called with text =", text);
         if (!text?.trim() || !isConnected) return false;
 
         setMessages(prev => [...prev, { role: 'user', text: text.trim() }]);
@@ -173,14 +187,15 @@ export const useWebSocketChat = (chatId, wsUrl) => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
             wsRef.current.send(text.trim());
             return true;
+        } else {
+            setIsTyping(false);
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                text: 'Erro: Conexão não está aberta. Tente novamente.'
+            }]);
+            return false;
         }
 
-        setIsTyping(false);
-        setMessages(prev => [...prev, {
-            role: 'assistant',
-            text: 'Erro: Conexão não está aberta. Tente novamente.'
-        }]);
-        return false;
     };
 
     return {
