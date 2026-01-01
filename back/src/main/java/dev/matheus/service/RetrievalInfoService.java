@@ -1,6 +1,5 @@
 package dev.matheus.service;
 
-import com.google.gson.Gson;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
@@ -24,20 +23,20 @@ import dev.matheus.dto.RetrievalInfoSaveRequest;
 import dev.matheus.entity.HypoteticalQuestion;
 import dev.matheus.entity.RetrievalInfo;
 import dev.matheus.repository.RetrievalInfoRepository;
-import dev.matheus.util.ChatUtils;
 import io.quarkiverse.langchain4j.jaxrsclient.JaxRsHttpClientBuilder;
-import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.jboss.logging.Logger;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static dev.matheus.util.ChatUtils.*;
@@ -75,6 +74,7 @@ public class RetrievalInfoService {
     final ChatService chatService;
     final Map<String, ContentRetriever> retrievers;
     final OpenAiChatModel openAiChatModel;
+    final ExecutorService executorService;
 
     public RetrievalInfoService(EmbeddingStore<TextSegment> embeddingStore,
                                 ChatService chatService,
@@ -100,6 +100,9 @@ public class RetrievalInfoService {
                 .logRequests(true)
                 .logResponses(true)
                 .build();
+
+        // Initialize executor service with fixed thread pool for parallel question generation
+        this.executorService = Executors.newFixedThreadPool(10);
     }
 
     @Tool("Retrieve relevant contents to answer document related questions")
@@ -288,17 +291,44 @@ public class RetrievalInfoService {
         DocumentByParagraphSplitter splitter = new DocumentByParagraphSplitter(1000, 20);
         List<TextSegment> paragraphs = splitter.split(document);
 
-        for (TextSegment paragraphSegment : paragraphs) {
-            Log.infof("Processing paragraph: %s for document %s", paragraphSegment.text(), fileName);
+        Log.infof("Starting parallel processing of %d paragraphs for document %s", paragraphs.size(), fileName);
 
-            ChatResponse aiResult = openAiChatModel.chat(generateChatMessage(paragraphSegment.text()));
+        // Create CompletableFuture for each paragraph to process them in parallel
+        List<CompletableFuture<List<QuestionParagraph>>> futures = paragraphs.stream()
+                .map(paragraphSegment -> CompletableFuture.supplyAsync(() -> {
+                    Log.infof("Processing paragraph in thread: %s for document %s",
+                            Thread.currentThread().getName(), fileName);
 
-            String[] questions = toCleanedQuestions(aiResult.aiMessage().text());
+                    ChatResponse aiResult = openAiChatModel.chat(generateChatMessage(paragraphSegment.text()));
+                    String[] questions = toCleanedQuestions(aiResult.aiMessage().text());
 
-            for (String question : questions) {
-                Log.infof("Generated question: %s", question);
-                allQuestionParagraphs.add(new QuestionParagraph(question, paragraphSegment));
+                    List<QuestionParagraph> paragraphQuestions = new ArrayList<>();
+                    for (String question : questions) {
+                        Log.infof("Generated question: %s", question);
+                        paragraphQuestions.add(new QuestionParagraph(question, paragraphSegment));
+                    }
+
+                    return paragraphQuestions;
+                }, executorService))
+                .toList();
+
+        // Wait for all futures to complete and collect results
+        CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+
+        try {
+            // Block until all tasks complete
+            allOf.join();
+
+            // Collect all results maintaining order
+            for (CompletableFuture<List<QuestionParagraph>> future : futures) {
+                allQuestionParagraphs.addAll(future.join());
             }
+
+            Log.infof("Completed parallel processing. Generated %d questions for document %s",
+                    allQuestionParagraphs.size(), fileName);
+        } catch (Exception e) {
+            Log.errorf(e, "Error during parallel question generation for document %s", fileName);
+            throw new RuntimeException("Failed to generate hypothetical questions", e);
         }
 
         List<TextSegment> embeddedSegments = allQuestionParagraphs.stream()
