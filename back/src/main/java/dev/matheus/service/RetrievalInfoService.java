@@ -90,16 +90,12 @@ public class RetrievalInfoService {
                 .httpClientBuilder(new JaxRsHttpClientBuilder())
                 .maxRetries(1)
                 .temperature(0.4)
-//                .responseFormat()
-//                .strictJsonSchema()
                 .build();
 
         this.embeddingModel = OpenAiEmbeddingModel.builder()
                 .apiKey(API_KEY)
                 .modelName(MODEL_EMBEDDING_TEXT)
                 .dimensions(768)
-                .logRequests(true)
-                .logResponses(true)
                 .build();
 
         // Initialize executor service with fixed thread pool for parallel question generation
@@ -236,13 +232,11 @@ public class RetrievalInfoService {
     public void retrieveAndSaveInfo(String chatMessageId) {
         Log.infof("Retrieving and saving info for ChatMessage ID: %s", chatMessageId);
 
-        var chatMessage = repository.findByChatMessageId(chatMessageId);
-        if (chatMessage == null) {
-            throw new NotFoundException("ChatMessage not found with id: " + chatMessageId);
-        }
+        var chatMessage = repository.findUserChatMessageByChatMessageId(chatMessageId)
+                .orElseThrow(() -> new NotFoundException("UserMessage not found with id: " + chatMessageId));
 
         if (chatMessage.content == null || chatMessage.content.trim().isEmpty()) {
-            throw new IllegalArgumentException("ChatMessage content is empty for id: " + chatMessageId);
+            throw new IllegalArgumentException("UserMessage content is empty for id: " + chatMessageId);
         }
 
         String userQuestion = chatMessage.content;
