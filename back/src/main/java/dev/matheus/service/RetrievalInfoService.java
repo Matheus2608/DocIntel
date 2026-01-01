@@ -1,5 +1,6 @@
 package dev.matheus.service;
 
+import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
@@ -107,8 +108,12 @@ public class RetrievalInfoService {
 
     @Tool("Retrieve relevant contents to answer document related questions")
     @Transactional
-    public String retrieveRelevantContents(String userQuestion, String chatId) {
-        Log.infof("Retrieving relavant contents for question: %s", userQuestion);
+    public String retrieveRelevantContents(
+            String chatId,
+            String question,
+            int maxNumberOfParagraphs
+    ) {
+        Log.infof("Retrieving relavant contents for question: %s", question);
 
         String messageId;
         String filename;
@@ -126,9 +131,9 @@ public class RetrievalInfoService {
 
         EmbeddingSearchResult<TextSegment> searchResults = embeddingStore.search(
                 EmbeddingSearchRequest.builder()
-                        .maxResults(4)
-                        .minScore(0.7)
-                        .queryEmbedding(embeddingModel.embed(userQuestion).content())
+                        .maxResults(maxNumberOfParagraphs)
+                        .minScore(0.75)
+                        .queryEmbedding(embeddingModel.embed(question).content())
                         .filter(new IsEqualTo(FILE_NAME_KEY, filename))
                         .build());
 
@@ -148,12 +153,12 @@ public class RetrievalInfoService {
 
         saveRetrievalInfo(new RetrievalInfoSaveRequest(
                 messageId,
-                userQuestion,
+                question,
                 questions
         ));
 
         if (questions.isEmpty()) {
-            Log.warnf("No relevant contents found for user question='%s'", userQuestion);
+            Log.warnf("No relevant contents found for user question='%s'", question);
             return "No relevant contents found.";
         }
 
