@@ -13,6 +13,7 @@
 
 </div>
 
+![Chat Dark Mode](./docintel-images/chat-darkmode.png)
 ---
 
 ## 🎯 O que é o DocIntel?
