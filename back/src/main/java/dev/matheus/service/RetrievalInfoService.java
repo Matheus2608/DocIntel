@@ -30,6 +30,7 @@ import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.jboss.logging.Logger;
 
 import java.nio.charset.StandardCharsets;
@@ -109,11 +110,15 @@ public class RetrievalInfoService {
         String messageId;
         String filename;
         try {
-            messageId = chatService.getLastUserMessage(chatId).id();
+            messageId = getMessageId(chatId);
             filename = chatService.getDocument(chatId).fileName();  // Fixed: use chatId, not messageId
         } catch (NotFoundException ex) {
             Log.warnf("No previous user message or document found for chatId=%s. Skipping retrieval info save.", chatId);
             return "No information found.";
+        } catch (InterruptedException ex) {
+            Log.errorf(ex, "Interrupted while retrieving message ID for chatId=%s", chatId);
+            Thread.currentThread().interrupt();
+            return "Error retrieving information.";
         }
 
         EmbeddingSearchResult<TextSegment> searchResults = embeddingStore.search(
@@ -155,6 +160,16 @@ public class RetrievalInfoService {
 
         System.out.println("\nResponse:\n" + concatenatedExtracts + "\n");
         return concatenatedExtracts;
+    }
+
+    String getMessageId(String chatId) throws InterruptedException {
+        Thread.sleep(400); // Wait for eventual consistency
+        return retryGetMessageId(chatId);
+    }
+
+    @Retry(maxRetries = 2, delay = 100)
+    String retryGetMessageId(String chatId) {
+        return chatService.getLastUserMessage(chatId).id();
     }
 
 
