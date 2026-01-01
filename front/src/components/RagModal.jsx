@@ -5,38 +5,31 @@ const RagModal = ({ onClose, messageId }) => {
     const [questions, setQuestions] = useState([]);
     const [userQuestion, setUserQuestion] = useState(null);
 
-    const response = {
-        "id": "c8a5b15c-a359-4052-a6d9-24e9027c1b8f",
-        "userQuestion": "A capital de Berlim não existe, pois Berlim é, na verdade, a capital da Alemanha.",
-        "hypoteticalQuestions": [
-            {
-                "id": 8,
-                "question": "Qual é a população de Berlim dentro dos limites da cidade?",
-                "chunk": "Berlim (em alemão: Berlin, AFI: [bɛʁˈliːn], ouvirⓘ) é a capital e um dos dezesseis estados da Alemanha. Com uma população de 3,5 milhões dentro de limites da cidade, é a maior cidade do país, e a sétima área urbana mais povoada da União Europeia.[4] Situada no nordeste da Alemanha, é o centro da área metropolitana de Berlim-Brandemburgo, que inclui 5 milhões de pessoas de mais de 190 nações.[5] Localizada na grande planície europeia, Berlim é influenciada por um clima temperado sazonal. Cerca de um terço da área da cidade é composta por florestas, parques, jardins, rios e lagos.[6]\n\nDocumentada pela primeira vez no século XIII, Berlim foi sucessivamente a capital do Reino da Prússia (1701–1918), do Império Alemão (1871–1918), da República de Weimar (1919–1933) e do Terceiro Reich (1933–1945).[7] Após a Segunda Guerra Mundial, a cidade foi dividida; Berlim Oriental se tornou a capital da Alemanha Oriental, enquanto Berlim Ocidental se tornou um exclave da Alemanha Ocidental, cercada pelo muro de Berlim, entre os anos de 1961–1989; a cidade de Bona tornou-se a capital da Alemanha Ocidental.[8] Após a reunificação alemã em 1990, a cidade recuperou o seu estatuto como a capital da República Federal da Alemanha, sediando 147 embaixadas estrangeiras.[9][10]",
-                "similarityScore": "0.7327743311389886"
-            },
-            {
-                "id": 9,
-                "question": "Qual foi a capital da Alemanha Ocidental após a divisão de Berlim após a Segunda Guerra Mundial?",
-                "chunk": "Berlim (em alemão: Berlin, AFI: [bɛʁˈliːn], ouvirⓘ) é a capital e um dos dezesseis estados da Alemanha. Com uma população de 3,5 milhões dentro de limites da cidade, é a maior cidade do país, e a sétima área urbana mais povoada da União Europeia.[4] Situada no nordeste da Alemanha, é o centro da área metropolitana de Berlim-Brandemburgo, que inclui 5 milhões de pessoas de mais de 190 nações.[5] Localizada na grande planície europeia, Berlim é influenciada por um clima temperado sazonal. Cerca de um terço da área da cidade é composta por florestas, parques, jardins, rios e lagos.[6]\n\nDocumentada pela primeira vez no século XIII, Berlim foi sucessivamente a capital do Reino da Prússia (1701–1918), do Império Alemão (1871–1918), da República de Weimar (1919–1933) e do Terceiro Reich (1933–1945).[7] Após a Segunda Guerra Mundial, a cidade foi dividida; Berlim Oriental se tornou a capital da Alemanha Oriental, enquanto Berlim Ocidental se tornou um exclave da Alemanha Ocidental, cercada pelo muro de Berlim, entre os anos de 1961–1989; a cidade de Bona tornou-se a capital da Alemanha Ocidental.[8] Após a reunificação alemã em 1990, a cidade recuperou o seu estatuto como a capital da República Federal da Alemanha, sediando 147 embaixadas estrangeiras.[9][10]",
-                "similarityScore": "0.7248891562091299"
-            }
-        ]
-    }
-
     const retrievalInfo = async (messageId) => {
         const response = await fetch(`http://localhost:8080/api/retrieve/${messageId}`);
+
+        if (!response.ok || response.status !== 200)
+            return null;
+
         const json = await response.json();
         return json;
     }
 
+    const sortBySimilarity = (a, b) => {
+        return parseFloat(b.similarityScore) - parseFloat(a.similarityScore);
+    }
+
+
+    const fetchData = async () => {
+        const data = await retrievalInfo(messageId);
+        console.log("retrievalInfo = ", data);
+        const sortedQuestions = (data?.hypoteticalQuestions || []).sort(sortBySimilarity);
+        console.log("sortedQuestions = ", sortedQuestions);
+        setQuestions(sortedQuestions);
+        setUserQuestion(data?.userQuestion || null);
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            const data = await retrievalInfo(messageId);
-            console.log("retrievalInfo = ", data);
-            setQuestions(data?.hypoteticalQuestions || []);
-            setUserQuestion(data?.userQuestion || null);
-        };
         fetchData();
     }, [messageId]);
 
@@ -67,7 +60,7 @@ const RagModal = ({ onClose, messageId }) => {
 
                 {/* Content Scrollável */}
                 <div className="p-6 overflow-y-auto bg-gray-50/50 dark:bg-[#1a1a2e]/50 flex-grow">
-                    {questions.length === 0&& (
+                    {questions.length === 0 && (
                         <div className="flex flex-col items-center justify-center py-12 px-4">
                             <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-xl p-8 max-w-md text-center">
                                 <AlertTriangle size={48} className="text-yellow-600 dark:text-yellow-400 mx-auto mb-4" />
@@ -80,7 +73,7 @@ const RagModal = ({ onClose, messageId }) => {
                             </div>
                         </div>
                     )}
-                    
+
                     <div className="space-y-6">
                         {questions.map((source, index) => (
                             <div key={source.id || index} className="bg-white dark:bg-[#24243e] border border-gray-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
