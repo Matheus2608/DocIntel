@@ -2,172 +2,202 @@ package dev.matheus.service;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
-import dev.langchain4j.data.document.Document;
-import dev.langchain4j.data.document.Metadata;
-import dev.langchain4j.data.document.splitter.DocumentByParagraphSplitter;
 import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.openai.OpenAiChatModel;
-import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
-import dev.langchain4j.rag.content.retriever.ContentRetriever;
-import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.model.output.structured.Description;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
-import dev.matheus.dto.Question;
+import dev.matheus.dto.RetrievalSegment;
 import dev.matheus.dto.RetrievalInfoSaveRequest;
 import dev.matheus.entity.HypoteticalQuestion;
 import dev.matheus.entity.RetrievalInfo;
 import dev.matheus.repository.RetrievalInfoRepository;
-import io.quarkiverse.langchain4j.jaxrsclient.JaxRsHttpClientBuilder;
+import dev.matheus.service.retrieval.FakeAnswerRetriever;
+import dev.matheus.service.retrieval.HypotheticalQuestionRetriever;
+import dev.matheus.service.retrieval.RetrievalSegmentProcessor;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.jboss.logging.Logger;
 
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import static dev.matheus.util.ChatUtils.*;
-
-record QuestionParagraph(
-        String question,
-        TextSegment paragraph
-) {
+enum SearchStrategy {
+    @Description("Estrategia que usa o match entre questoes hipoteticas e a pergunta do usuario. Reformule bem a pergunta para melhores resultados.")
+    HYPOTHETICAL_QUESTIONS,
+    @Description("Estrategia que cria uma resposta falsa e a utiliza para fazer o match com os segmentos.")
+    FAKE_ANSWERS,
+    @Description("Usa ambas as estrategias.")
+    BOTH
 }
 
+record RetrievalSearchParams(
+        double minSimilarity,
+        double minScore,
+        int maxResults,
+        SearchStrategy strategy
+) {}
 
 @ApplicationScoped
 public class RetrievalInfoService {
 
-    private static final Logger Log = Logger.getLogger(ChatService.class);
-    private static final String API_KEY = System.getenv("OPENAI_API_KEY");
-    private static final String MODEL_EMBEDDING_TEXT = "text-embedding-3-small";
-    private static final String PARAGRAPH_KEY = "PARAGRAPH";
-    private static final String FILE_NAME_KEY = "FILE_NAME";
+    private static final Logger LOG = Logger.getLogger(RetrievalInfoService.class);
 
-    private static final String SYSTEM_PROMPT_FORMAT = """
-            Sugira %s perguntas claras cuja resposta poderia ser dada pelo texto fornecido pelo usuário.
-            Não use pronomes, seja explícito sobre os sujeitos e objetos da pergunta.
-            Retorne um array JSON de strings com as perguntas.
-            """;
+    @Inject
+    RetrievalInfoRepository repository;
 
-    private static final String USER_PROMPT_FORMAT = """
-            Texto:\n%s
-            """;
+    @Inject
+    EmbeddingModel embeddingModel;
+
+    @Inject
+    ChatService chatService;
+
+    @Inject
+    @Named("retrievalExecutorService")
+    ExecutorService executorService;
+
+    @Inject
+    HypotheticalQuestionService hypotheticalQuestionService;
+
+//    @Inject
+//    SearchStrategyDeterminerAiService searchStrategyDeterminer;
 
 
-    final RetrievalInfoRepository repository;
-    final EmbeddingStore<TextSegment> embeddingStore;
-    final EmbeddingModel embeddingModel;
-    final ChatService chatService;
-    final Map<String, ContentRetriever> retrievers;
-    final OpenAiChatModel openAiChatModel;
-    final ExecutorService executorService;
+    @Inject
+    HypotheticalQuestionRetriever hypotheticalQuestionRetriever;
 
-    public RetrievalInfoService(EmbeddingStore<TextSegment> embeddingStore,
-                                ChatService chatService,
-                                RetrievalInfoRepository repository) {
-        this.embeddingStore = embeddingStore;
-        this.chatService = chatService;
-        this.repository = repository;
-        this.retrievers = new HashMap<>();
-        this.openAiChatModel = OpenAiChatModel.builder()
-                .apiKey(API_KEY)
-                .modelName("gpt-4o")
-                .httpClientBuilder(new JaxRsHttpClientBuilder())
-                .maxRetries(1)
-                .temperature(0.4)
-                .build();
+    @Inject
+    FakeAnswerRetriever fakeAnswerRetriever;
 
-        this.embeddingModel = OpenAiEmbeddingModel.builder()
-                .apiKey(API_KEY)
-                .modelName(MODEL_EMBEDDING_TEXT)
-                .dimensions(768)
-                .build();
+    @Inject
+    RetrievalSegmentProcessor processor;
 
-        // Initialize executor service with fixed thread pool for parallel question generation
-        this.executorService = Executors.newFixedThreadPool(10);
-    }
 
-    @Tool("Retrieve relevant contents to answer document related questions")
-    @Transactional
+    @Tool("Encontre conteúdos relevantes para responder perguntas relacionadas ao documento usando RAG")
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public String retrieveRelevantContents(
             String chatId,
-            String question,
-            int maxNumberOfParagraphs
+            @P("duvida do usuario ou duvida reformulada para gerar melhores resultados") String question,
+            @P("A similaridade mínima para a busca de segmentos relevantes (entre 0.7 e 0.9") double minSimilarity,
+            @P("O score mínimo para considerar um segmento relevante (entre 0.5 e 0.8") double minScore,
+            @P("O número máximo de resultados a serem retornados (entre 2 e 10") int maxResults,
+            @P("A estratégia de busca a ser utilizada") SearchStrategy strategy
     ) {
-        Log.infof("Retrieving relavant contents for question: %s", question);
+        LOG.infof("Retrieving relevant contents for question: %s", question);
 
-        String messageId;
-        String filename;
-        try {
-            messageId = getMessageId(chatId);
-            filename = chatService.getDocument(chatId).fileName();  // Fixed: use chatId, not messageId
-        } catch (NotFoundException ex) {
-            Log.warnf("No previous user message or document found for chatId=%s. Skipping retrieval info save.", chatId);
+        ChatContext context = getChatContext(chatId);
+        if (context == null) {
             return "No information found.";
-        } catch (InterruptedException ex) {
-            Log.errorf(ex, "Interrupted while retrieving message ID for chatId=%s", chatId);
-            Thread.currentThread().interrupt();
-            return "Error retrieving information.";
         }
 
-        EmbeddingSearchResult<TextSegment> searchResults = embeddingStore.search(
-                EmbeddingSearchRequest.builder()
-                        .maxResults(maxNumberOfParagraphs)
-                        .minScore(0.75)
-                        .queryEmbedding(embeddingModel.embed(question).content())
-                        .filter(new IsEqualTo(FILE_NAME_KEY, filename))
-                        .build());
+        RetrievalSearchParams searchParams = new RetrievalSearchParams(
+                minSimilarity,
+                minScore,
+                maxResults,
+                strategy
+        );
 
-        List<Question> questions = searchResults.matches().stream()
-                .collect(Collectors.toMap(
-                        match -> match.embedded().metadata().getString(PARAGRAPH_KEY),
-                        match -> new Question(
-                                match.embedded().text(),
-                                match.embedded().metadata().getString(PARAGRAPH_KEY),
-                                match.score()
-                        ),
-                        (existing, replacement) -> existing // mantém o primeiro em caso de duplicata
-                ))
-                .values()
-                .stream()
-                .toList();
+        LOG.infof("Using strategy: %s with params: minSimilarity=%.2f, minScore=%.2f, maxResults=%d",
+                strategy, minSimilarity, minScore, maxResults);
 
-        saveRetrievalInfo(new RetrievalInfoSaveRequest(
-                messageId,
-                question,
-                questions
-        ));
+        List<EmbeddingMatch<TextSegment>> matches = performSearch(
+                question, context.filename, strategy, searchParams);
 
-        if (questions.isEmpty()) {
-            Log.warnf("No relevant contents found for user question='%s'", question);
-            return "No relevant contents found.";
+        List<RetrievalSegment> segments = processor.processMatches(matches, question);
+
+        saveRetrievalInfoAsync(context.messageId, question, segments);
+
+        if (segments.isEmpty()) {
+            LOG.warnf("No relevant contents found for question: %s", question);
+            return "Não foram achados conteúdos relevantes. Talvez se reformular a pergunta consiga encontrar melhores resultados.";
         }
 
-        String concatenatedExtracts = searchResults.matches().stream()
-                .map(match -> match.embedded().metadata().getString(PARAGRAPH_KEY))
-                .collect(Collectors.joining("\n---\n", "\n---\n", "\n---\n"));
+        List<RetrievalSegment> filtered = processor.filterAndSort(
+                segments, searchParams.minScore(), searchParams.maxResults());
 
-        System.out.println("\nResponse:\n" + concatenatedExtracts + "\n");
-        return concatenatedExtracts;
+        return formatResults(filtered);
     }
 
-    String getMessageId(String chatId) throws InterruptedException {
-        Thread.sleep(400); // Wait for eventual consistency
+    private ChatContext getChatContext(String chatId) {
+        try {
+            String messageId = getMessageId(chatId);
+            String filename = chatService.getDocument(chatId).fileName();
+            return new ChatContext(messageId, filename);
+        } catch (NotFoundException ex) {
+            LOG.warnf("No previous user message or document found for chatId=%s", chatId);
+            return null;
+        } catch (InterruptedException ex) {
+            LOG.errorf(ex, "Interrupted while retrieving message ID for chatId=%s", chatId);
+            Thread.currentThread().interrupt();
+            return null;
+        }
+    }
+
+    private List<EmbeddingMatch<TextSegment>> performSearch(
+            String question,
+            String filename,
+            SearchStrategy strategy,
+            RetrievalSearchParams params
+    ) {
+        LOG.debugf("Performing search with strategy=%s for filename=%s", strategy, filename);
+        Embedding questionEmbedding = embeddingModel.embed(question).content();
+        List<CompletableFuture<EmbeddingSearchResult<TextSegment>>> searchFutures = new ArrayList<>();
+
+        if (strategy == SearchStrategy.HYPOTHETICAL_QUESTIONS || strategy == SearchStrategy.BOTH) {
+            LOG.debug("Adding HYPOTHETICAL_QUESTIONS strategy to search");
+            searchFutures.add(CompletableFuture.supplyAsync(
+                    () -> hypotheticalQuestionRetriever.search(questionEmbedding, filename, params.maxResults(), params.minSimilarity()),
+                    executorService));
+        }
+
+        if (strategy == SearchStrategy.FAKE_ANSWERS || strategy == SearchStrategy.BOTH) {
+            LOG.debug("Adding FAKE_ANSWERS strategy to search");
+            searchFutures.add(CompletableFuture.supplyAsync(
+                    () -> fakeAnswerRetriever.search(question, filename, params.maxResults(), params.minSimilarity()),
+                    executorService));
+        }
+
+        CompletableFuture.allOf(searchFutures.toArray(new CompletableFuture[0])).join();
+
+        List<EmbeddingMatch<TextSegment>> matches = searchFutures.stream()
+                .map(CompletableFuture::join)
+                .flatMap(result -> result.matches().stream())
+                .toList();
+
+        LOG.debugf("Search strategies completed, found %d total matches", matches.size());
+        return matches;
+    }
+
+    private String formatResults(List<RetrievalSegment> segments) {
+        return segments.stream()
+                .map(seg -> String.format("SCORE: %.2f\nChunk: %s", seg.modelScore(), seg.chunk()))
+                .collect(Collectors.joining(
+                        "\n---\n",
+                        "Segue segmentos ordenados em ordem de importância.\n---\n",
+                        "\n---\n"));
+    }
+
+    private void saveRetrievalInfoAsync(String messageId, String question, List<RetrievalSegment> segments) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                saveRetrievalInfo(new RetrievalInfoSaveRequest(messageId, question, segments));
+            } catch (Exception e) {
+                LOG.errorf(e, "Error saving retrieval info asynchronously");
+            }
+        }, executorService);
+    }
+
+    private String getMessageId(String chatId) throws InterruptedException {
+        Thread.sleep(400);
         return retryGetMessageId(chatId);
     }
 
@@ -176,51 +206,48 @@ public class RetrievalInfoService {
         return chatService.getLastUserMessage(chatId).id();
     }
 
-
     @Transactional
     public void saveRetrievalInfo(RetrievalInfoSaveRequest request) {
-        Log.infof("Saving RetrievalInfo for ChatMessage ID: %s", request.chatMessageId());
+        LOG.infof("Saving RetrievalInfo for ChatMessage ID: %s", request.chatMessageId());
         try {
             var chatMessage = repository.findByChatMessageId(request.chatMessageId());
             if (chatMessage == null) {
                 throw new NotFoundException("ChatMessage not found with id: " + request.chatMessageId());
             }
 
-            // Check if RetrievalInfo already exists
             if (chatMessage.retrievalInfo != null) {
-                Log.warnf("RetrievalInfo already exists for ChatMessage ID: %s", request.chatMessageId());
+                LOG.warnf("RetrievalInfo already exists for ChatMessage ID: %s", request.chatMessageId());
                 return;
             }
 
             RetrievalInfo retrievalInfo = new RetrievalInfo();
             retrievalInfo.userQuestion = request.userQuestion();
 
-            // Set bidirectional relationship correctly
-            List<HypoteticalQuestion> questions = request.hypoteticalQuestions().stream().map(question -> {
+            List<HypoteticalQuestion> questions = request.retrievalSegments().stream().map(segment -> {
                 HypoteticalQuestion hq = new HypoteticalQuestion();
-                hq.question = question.question();
-                hq.similarityScore = question.similarity().toString();
-                hq.chunk = question.chunk();
-                hq.retrievalInfo = retrievalInfo; // Set the parent reference
+                hq.question = segment.question();
+                hq.similarityScore = segment.similarity().toString();
+                hq.chunk = segment.chunk();
+                hq.modelScore = segment.modelScore();
+                hq.retrievalInfo = retrievalInfo;
                 return hq;
             }).toList();
 
             retrievalInfo.hypoteticalQuestions = questions;
             chatMessage.retrievalInfo = retrievalInfo;
 
-            // Just set the relationship - cascade will handle persistence
             repository.persist(chatMessage);
 
-            Log.infof("RetrievalInfo saved successfully for ChatMessage ID: %s with %d questions",
+            LOG.infof("RetrievalInfo saved successfully for ChatMessage ID: %s with %d questions",
                     request.chatMessageId(), questions.size());
         } catch (Exception e) {
-            Log.errorf(e, "Error saving RetrievalInfo for ChatMessage ID: %s", request.chatMessageId());
+            LOG.errorf(e, "Error saving RetrievalInfo for ChatMessage ID: %s", request.chatMessageId());
             throw e;
         }
     }
 
     public RetrievalInfo getRetrievalInfoByChatMessageId(String chatMessageId) {
-        Log.infof("Fetching RetrievalInfo for ChatMessage ID: %s", chatMessageId);
+        LOG.infof("Fetching RetrievalInfo for ChatMessage ID: %s", chatMessageId);
         var chatMessage = repository.findByChatMessageId(chatMessageId);
         if (chatMessage == null || chatMessage.retrievalInfo == null) {
             throw new NotFoundException("RetrievalInfo not found for ChatMessage ID: " + chatMessageId);
@@ -228,134 +255,9 @@ public class RetrievalInfoService {
         return chatMessage.retrievalInfo;
     }
 
-    @Transactional
-    public void retrieveAndSaveInfo(String chatMessageId) {
-        Log.infof("Retrieving and saving info for ChatMessage ID: %s", chatMessageId);
-
-        var chatMessage = repository.findUserChatMessageByChatMessageId(chatMessageId)
-                .orElseThrow(() -> new NotFoundException("UserMessage not found with id: " + chatMessageId));
-
-        if (chatMessage.content == null || chatMessage.content.trim().isEmpty()) {
-            throw new IllegalArgumentException("UserMessage content is empty for id: " + chatMessageId);
-        }
-
-        String userQuestion = chatMessage.content;
-        Log.infof("User question from message: %s", userQuestion);
-
-        String filename = chatService.getDocument(chatMessage.chat.id).fileName();
-
-        List<Question> questions = retrieveQuestions(userQuestion, filename);
-        Log.infof("Retrieved %d questions for messageId=%s",
-                questions != null ? questions.size() : 0, chatMessageId);
-
-        if (questions == null || questions.isEmpty()) {
-            Log.warnf("No questions retrieved for ChatMessage ID: %s", chatMessageId);
-            throw new NotFoundException("No relevant content found for this question");
-        }
-
-        saveRetrievalInfo(
-                new RetrievalInfoSaveRequest(
-                        chatMessageId,
-                        userQuestion,
-                        questions
-                )
-        );
+    public void ingestionOfHypotheticalQuestions(byte[] docBytes, String fileName, String fileType) throws IOException {
+        hypotheticalQuestionService.ingestHypotheticalQuestions(docBytes, fileName, fileType);
     }
 
-    public List<Question> retrieveQuestions(String userQuestion, String filename) {
-        Log.infof("User question: %s", userQuestion);
-
-        EmbeddingSearchResult<TextSegment> searchResults = embeddingStore.search(
-                EmbeddingSearchRequest.builder()
-                        .maxResults(4)
-                        .minScore(0.7)
-                        .queryEmbedding(embeddingModel.embed(userQuestion).content())
-                        .filter(new IsEqualTo(FILE_NAME_KEY, filename))
-                        .build());
-
-        return searchResults.matches().stream()
-                .map(match -> new Question(
-                        match.embedded().text(),
-                        match.embedded().metadata().getString(PARAGRAPH_KEY),
-                        match.score()
-                )).toList();
-    }
-
-    public void ingestionOfHypotheticalQuestions(byte[] docBytes, String fileName) {
-        Log.infof("Ingesting hypothetical questions for document: %s", fileName);
-
-        Document document = toDocument(docBytes);
-        DocumentByParagraphSplitter splitter = new DocumentByParagraphSplitter(1000, 20);
-
-        List<QuestionParagraph> questionParagraphs = parallelProcessing(splitter.split(document), fileName);
-        List<TextSegment> embeddedSegments = questionParagraphsToTextSegments(questionParagraphs, fileName);
-
-        List<Embedding> embeddings = embeddingModel.embedAll(embeddedSegments).content();
-        embeddingStore.addAll(embeddings, embeddedSegments);
-
-        Log.infof("Successfully ingested %d hypothetical questions for document %s", questionParagraphs.size(), fileName);
-    }
-
-    private List<QuestionParagraph> parallelProcessing(List<TextSegment> paragraphs, String fileName) {
-        Log.infof("Starting parallel processing of %d paragraphs for document %s", paragraphs.size(), fileName);
-
-        // Create CompletableFuture for each paragraph to process them in parallel
-        List<CompletableFuture<List<QuestionParagraph>>> futures = paragraphs.stream()
-                .map(paragraphSegment -> CompletableFuture.supplyAsync(() -> {
-                    Log.infof("Processing paragraph in thread: %s for document %s",
-                            Thread.currentThread().getName(), fileName);
-
-                    ChatResponse aiResult = openAiChatModel.chat(generateChatMessage(paragraphSegment.text()));
-                    String[] questions = toCleanedQuestions(aiResult.aiMessage().text());
-
-                    List<QuestionParagraph> paragraphQuestions = new ArrayList<>();
-                    for (String question : questions) {
-                        Log.infof("Generated question: %s", question);
-                        paragraphQuestions.add(new QuestionParagraph(question, paragraphSegment));
-                    }
-
-                    return paragraphQuestions;
-                }, executorService))
-                .toList();
-
-        // Wait for all futures to complete and collect results
-        CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-
-        List<QuestionParagraph> result = new ArrayList<>();
-        try {
-            // Block until all tasks complete
-            allOf.join();
-            // Collect all results maintaining order
-            for (CompletableFuture<List<QuestionParagraph>> future : futures) {
-                result.addAll(future.join());
-            }
-            Log.infof("Completed parallel processing. Generated %d questions for document %s",
-                    result.size(), fileName);
-        } catch (Exception e) {
-            Log.errorf(e, "Error during parallel question generation for document %s", fileName);
-            throw new RuntimeException("Failed to generate hypothetical questions", e);
-        }
-
-        return result;
-    }
-
-    private List<TextSegment> questionParagraphsToTextSegments(List<QuestionParagraph> questionParagraphs, String fileName) {
-        return questionParagraphs.stream()
-                .map(questionParagraph -> TextSegment.from(
-                        questionParagraph.question(),
-                        new Metadata()
-                                .put(PARAGRAPH_KEY, questionParagraph.paragraph().text())
-                                .put(FILE_NAME_KEY, fileName)
-                ))
-                .toList();
-    }
-
-    private List<ChatMessage> generateChatMessage(String paragraph) {
-        int numberOfQuestions = getNumberQuestions(paragraph);
-        return List.of(
-                SystemMessage.from(String.format(SYSTEM_PROMPT_FORMAT, numberOfQuestions)),
-                UserMessage.from(String.format(USER_PROMPT_FORMAT, paragraph))
-        );
-    }
-
+    private record ChatContext(String messageId, String filename) {}
 }

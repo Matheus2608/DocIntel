@@ -6,14 +6,14 @@ import java.util.List;
 public record RetrievalInfoSaveRequest(
         String chatMessageId,
         String userQuestion,
-        List<Question> hypoteticalQuestions
+        List<RetrievalSegment> retrievalSegments
 ) {
     @Override
     public String toString() {
         return "RetrievalInfoSaveRequest{" +
                 "chatMessageId='" + chatMessageId + '\'' +
                 ", userQuestion='" + userQuestion + '\'' +
-                ", hypoteticalQuestions=" + hypoteticalQuestions +
+                ", hypoteticalQuestions=" + retrievalSegments +
                 '}';
     }
 }

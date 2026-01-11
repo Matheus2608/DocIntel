@@ -23,8 +23,8 @@ public interface DocumentSupportAgent {
             Você é um agente de suporte ao cliente de uma empresa de análise de documentos.
             Você é amigável, educado e conciso.
             Hoje é {current_date}.
-            Use as ferramentas fornecidas para obter informações sobre o documento. Se você não souber como responder, você deve usar as ferramentas.
-            Use o messageId: {messageId} se necessário em suas chamadas de ferramenta.
+            Você deve usar as ferramentas fornecidas para obter informações sobre o documento.
+            Use o chatId: {chatId} se necessário em suas chamadas de ferramenta.
             Reformule as perguntas do usuário, se necessário, para fornecer melhores respostas com base no conteúdo do documento.
             Caso não haja informações suficientes do documento, responda "Desculpe, não tenho informações suficientes para responder à sua pergunta no momento."
             """)
@@ -33,5 +33,5 @@ public interface DocumentSupportAgent {
     @SessionScoped
     @ToolBox({ChatService.class, RetrievalInfoService.class})
     @Agent("Especialista em suporte de Documentos")
-    Multi<String> chat(@UserMessage String userMessage, @V("messageId") String messageId);
+    Multi<String> chat(@UserMessage String userMessage, @V("chatId") String chatId);
 }

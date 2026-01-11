@@ -38,7 +38,7 @@ public class ChatResource {
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response createChat(@RestForm("file") FileUpload file) {
+    public Response createChat(@RestForm("file") FileUpload file) throws IOException {
         LOG.infof("Creating chat: fileName=%s", file != null ? file.fileName() : "null");
 
         if (!isValidFile(file)) {
@@ -92,9 +92,17 @@ public class ChatResource {
         return Response.noContent().build();
     }
 
+    @DELETE
+    @Path("/{chatId}/messages")
+    public Response deleteChatMessages(@PathParam("chatId") String chatId) {
+        chatService.deleteChatMessages(chatId);
+        return Response.noContent().build();
+    }
+
     @GET
     @Path("/{chatId}/messages")
     public List<ChatMessageResponse> getChatMessages(@PathParam("chatId") String chatId) {
+        LOG.debugf("Received request to get messages: chatId=%s", chatId);
         return chatService.getChatMessages(chatId);
     }
 

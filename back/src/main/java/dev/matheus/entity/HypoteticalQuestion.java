@@ -21,6 +21,9 @@ public class HypoteticalQuestion extends PanacheEntityBase {
     @Column(name = "similarity_score", nullable = false)
     public String similarityScore;
 
+    @Column(name = "model_score")
+    public Double modelScore;
+
     // Relacionamento bidirecional - cada pergunta pertence a um RetrievalInfo
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "retrieval_info_id", nullable = false)

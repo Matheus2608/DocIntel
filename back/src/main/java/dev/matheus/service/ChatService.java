@@ -2,6 +2,10 @@ package dev.matheus.service;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.matheus.dto.ChatListResponse;
 import dev.matheus.dto.ChatMessageResponse;
 import dev.matheus.dto.ChatResponse;
@@ -20,7 +24,7 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import org.jboss.logging.Logger;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.List;
 
 @ApplicationScoped
@@ -44,8 +48,12 @@ public class ChatService {
     @Inject
     jakarta.persistence.EntityManager entityManager;
 
+    @Inject
+    EmbeddingStore<TextSegment> embeddingStore;
+
+
     @Transactional
-    public ChatResponse createChat(byte[] fileData, String fileName, String fileType) {
+    public ChatResponse createChat(byte[] fileData, String fileName, String fileType) throws IOException {
         LOG.infof("Creating chat with document: fileName=%s, fileType=%s, size=%d bytes",
                 fileName, fileType, fileData != null ? fileData.length : 0);
 
@@ -73,7 +81,7 @@ public class ChatService {
                 chat.id, documentFile.id, chat.title);
 
         Log.infof("Starting RAG ingestion for file=%s", fileName);
-        retrievalInfoService.ingestionOfHypotheticalQuestions(fileData, fileName);
+        retrievalInfoService.ingestionOfHypotheticalQuestions(fileData, fileName, fileType);
 
         return mapToChatResponse(chat);
     }
@@ -112,12 +120,30 @@ public class ChatService {
     @Transactional
     public void deleteChat(String chatId) {
         LOG.infof("Deleting chat from database: chatId=%s", chatId);
-        boolean deleted = chatRepository.deleteById(chatId);
-        if (deleted) {
-            LOG.infof("Chat deleted successfully: chatId=%s", chatId);
-        } else {
-            LOG.warnf("Chat not found for deletion: chatId=%s", chatId);
+        Chat chat = chatRepository.findByIdOptional(chatId)
+                .orElseThrow(() -> {
+                    LOG.warnf("Chat not found for deletion: chatId=%s", chatId);
+                    return new NotFoundException("Chat not found");
+                });
+
+        String filename = chat.documentFile.fileName;
+        chatRepository.delete(chat);
+
+        try {
+            // delete all embeddings related to this chat
+            embeddingStore.removeAll(new IsEqualTo("FILE_NAME", filename));
+        } catch (Exception ex) {
+            Log.error("Could not execute REMOVEALL", ex);
         }
+
+        LOG.infof("All embeddings related to filename=%s have been deleted", filename);
+    }
+
+    @Transactional
+    public void deleteChatMessages(String chatId) {
+        LOG.infof("Deleting all messages for chat: chatId=%s", chatId);
+        long deletedCount = chatMessageRepository.deleteMessages(chatId);
+        LOG.infof("Deleted %d messages for chatId=%s", deletedCount, chatId);
     }
 
     public ChatMessageResponse getLastUserMessage(String chatId) {
@@ -131,6 +157,7 @@ public class ChatService {
     }
 
     public void saveEmptyRetrievalInfoIfNeeded(String chatId, String userQuestion) {
+        LOG.debugf("Checking if empty RetrievalInfo is needed: chatId=%s", chatId);
         var lastMessage = chatMessageRepository.findLastUserMessageByChatId(chatId)
                 .orElseThrow(() -> {
                     LOG.warnf("No user messages found for chat: chatId=%s", chatId);
@@ -138,7 +165,7 @@ public class ChatService {
                 });
 
         if (lastMessage.retrievalInfo == null) {
-            Log.infof("No RetrievalInfo found for last user message ID: %s. Saving empty RetrievalInfo.",
+            Log.infof("No RetrievalInfo found for last user message. Saving empty RetrievalInfo - messageId=%s",
                     lastMessage.id);
 
             RetrievalInfo info = new RetrievalInfo();
@@ -146,7 +173,9 @@ public class ChatService {
 
             lastMessage.retrievalInfo = info;
             chatMessageRepository.persist(lastMessage);
-            Log.infof("Empty RetrievalInfo saved for ChatMessage ID: %s", lastMessage.id);
+            Log.infof("Empty RetrievalInfo saved successfully - messageId=%s", lastMessage.id);
+        } else {
+            LOG.debugf("RetrievalInfo already exists for messageId=%s, skipping", lastMessage.id);
         }
     }
 
@@ -205,11 +234,11 @@ public class ChatService {
                 .toList();
     }
 
-    @Tool(value = "Retrieves a range of USER messages from the chat history. Example: getRecentUserMessages(chatId, 0, 5) returns the first 5 USER messages")
+    @Tool(value = "Recupera um intervalo de mensagens do tipo USUÁRIO do histórico do chat. Exemplo: getRecentUserMessages(chatId, 0, 5) retorna as primeiras 5 mensagens do tipo USUÁRIO")
     public List<String> getRecentUserMessages(
-            @P("ID of the chat") String chatId,
-            @P("Starting index (0-based)") int startIdx,
-            @P("Ending index (exclusive)") int endIdx) {
+            @P("ID do chat") String chatId,
+            @P("Índice inicial (baseado em 0)") int startIdx,
+            @P("Índice final (exclusivo)") int endIdx) {
 
         LOG.debugf("Fetching recent USER conversation history for chat: chatId=%s", chatId);
 
@@ -230,11 +259,11 @@ public class ChatService {
         return result;
     }
 
-    @Tool(value = "Retrieves a range of AI generated responses from the chat history. Example: getRecentAiResponses(chatId, 0, 5) returns the first 5 AI messages")
+    @Tool(value = "Recupera um intervalo de mensagens do tipo ASSISTENTE do histórico do chat. Exemplo: getRecentAiResponses(chatId, 0, 5) retorna as primeiras 5 mensagens do tipo ASSISTENTE")
     public List<String> getRecentAiResponses(
-            @P("ID of the chat") String chatId,
-            @P("Starting index (0-based)") int startIdx,
-            @P("Ending index (exclusive)") int endIdx) {
+            @P("ID do chat") String chatId,
+            @P("Índice inicial (baseado em 0)") int startIdx,
+            @P("Índice final (exclusivo)") int endIdx) {
 
         LOG.debugf("Fetching recent AI conversation history for chat: chatId=%s", chatId);
 
@@ -254,6 +283,16 @@ public class ChatService {
         return result;
     }
 
+    @Tool(value = "Retorna o número de mensagens do assistente")
+    public long getNumberOfAssistantMessages(String chatId) {
+        return chatMessageRepository.countNumberOfAssistantMessages(chatId);
+    }
+
+    @Tool(value = "Retorna o número de mensagens do usuário")
+    public long getNumberOfUserMessages(String chatId) {
+        return chatMessageRepository.countNumberOfUserMessages(chatId);
+    }
+
     /**
      * Check if a message is a welcome message
      */
@@ -266,7 +305,7 @@ public class ChatService {
         );
     }
 
-    @Tool("get document metadata")
+    @Tool("retorna metadata do documento")
     @Transactional
     public DocumentFileResponse getDocument(String chatId) {
         return documentFileRepository.findByChatId(chatId)
@@ -308,4 +347,3 @@ public class ChatService {
         );
     }
 }
-

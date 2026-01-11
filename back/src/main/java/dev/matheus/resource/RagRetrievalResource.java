@@ -5,11 +5,14 @@ import dev.matheus.service.RetrievalInfoService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.jboss.logging.Logger;
 
 @Path("/api/retrieve")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class RagRetrievalResource {
+
+    private static final Logger LOG = Logger.getLogger(RagRetrievalResource.class);
 
     @Inject
     public RetrievalInfoService retrievalInfoService;
@@ -17,12 +20,10 @@ public class RagRetrievalResource {
     @GET
     @Path("/{messageId}")
     public RetrievalInfo retrieve(@PathParam("messageId") String messageId) {
-        try {
-            return retrievalInfoService.getRetrievalInfoByChatMessageId(messageId);
-        } catch (NotFoundException ex) {
-            retrievalInfoService.retrieveAndSaveInfo(messageId);
-            return retrievalInfoService.getRetrievalInfoByChatMessageId(messageId);
-        }
+        LOG.infof("Received retrieval request: messageId=%s", messageId);
+        RetrievalInfo info = retrievalInfoService.getRetrievalInfoByChatMessageId(messageId);
+        LOG.debugf("Retrieval info returned successfully: messageId=%s", messageId);
+        return info;
     }
 
 }

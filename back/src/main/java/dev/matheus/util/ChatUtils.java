@@ -1,60 +1,71 @@
 package dev.matheus.util;
 
 import com.google.gson.Gson;
-import dev.langchain4j.data.document.Document;
+import dev.langchain4j.data.document.*;
+import dev.langchain4j.data.document.parser.TextDocumentParser;
+import dev.langchain4j.data.document.parser.apache.pdfbox.ApachePdfBoxDocumentParser;
+import dev.langchain4j.data.document.parser.apache.poi.ApachePoiDocumentParser;
 
-import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 
+/**
+ * Utility class for document parsing and question extraction.
+ */
 public class ChatUtils {
 
     private static final Gson gson = new Gson();
 
-
-    public static int getNumberQuestions(String paragraph) {
-        int phraseCount = getNumberOfPhrases(paragraph);
-        int wordCount = countWords(paragraph);
-        int sentenceComplexity = calculateSentenceComplexity(paragraph);
-
-        // Base: 1 pergunta a cada 2-3 frases
-        double baseQuestions = phraseCount / 2.4;
-
-        // Ajuste por tamanho: parágrafos maiores podem gerar mais perguntas
-        double lengthBonus = wordCount > 150 ? 1.5 : (wordCount > 80 ? 1.0 : 0.5);
-
-        // Ajuste por complexidade: frases mais complexas sugerem mais conteúdo
-        double complexityMultiplier = 1.0 + (sentenceComplexity / 10.0);
-
-        int totalQuestions = (int) Math.ceil(baseQuestions * complexityMultiplier + lengthBonus);
-
-        // Limites: mínimo 2, máximo 10 perguntas por parágrafo
-        return Math.max(2, Math.min(10, totalQuestions));
+    private ChatUtils() {
+        // Utility class
     }
 
-    static private int getNumberOfPhrases(String paragraph) {
-        return paragraph.split("[.!?]+").length;
+    public static int getNumberQuestions(String chunk) {
+        return QuestionCountCalculator.calculateOptimalQuestionCount(chunk);
     }
 
-    static private int countWords(String paragraph) {
-        return paragraph.trim().split("\\s+").length;
+    public static Document toDocument(byte[] docBytes, String contentType, String fileName) {
+        InputStream inputStream = new ByteArrayInputStream(docBytes);
+        DocumentParser parser = selectParser(contentType, fileName);
+        Document document = parser.parse(inputStream);
+
+        Metadata metadata = document.metadata();
+        metadata.put("file_name", fileName);
+        metadata.put("content_type", contentType);
+
+        return document;
     }
 
-    static private int calculateSentenceComplexity(String paragraph) {
-        String[] sentences = paragraph.split("[.!?]+");
-        return (int) Math.round(
-                java.util.Arrays.stream(sentences)
-                        .mapToInt(s -> s.split("[,;:]").length) // cláusulas por frase
-                        .average()
-                        .orElse(1.0)
-        );
+    static DocumentParser selectParser(String contentType, String fileName) {
+        if (isPdf(contentType, fileName)) {
+            return new ApachePdfBoxDocumentParser();
+        } else if (isDocx(contentType, fileName)) {
+            return new ApachePoiDocumentParser();
+        } else {
+            return new TextDocumentParser();
+        }
     }
 
-    public static Document toDocument(byte[] docBytes) {
-        String documentText = new String(docBytes, StandardCharsets.UTF_8);
-        return Document.from(documentText);
+    public static boolean isPdf(String contentType, String fileName) {
+        return (contentType != null && contentType.contains("pdf")) ||
+                (fileName != null && fileName.toLowerCase().endsWith(".pdf"));
+    }
+
+    private static boolean isDocx(String contentType, String fileName) {
+        return (contentType != null &&
+                (contentType.contains("wordprocessingml") ||
+                        contentType.contains("msword"))) ||
+                (fileName != null &&
+                        (fileName.toLowerCase().endsWith(".docx") ||
+                                fileName.toLowerCase().endsWith(".doc")));
+    }
+
+    private static boolean isText(String contentType, String fileName) {
+        return (contentType != null && contentType.contains("text")) ||
+                (fileName != null && fileName.toLowerCase().endsWith(".txt"));
     }
 
     public static String[] toCleanedQuestions(String responseText) {
-        // Remover markdown se houver
         String cleanedText = responseText.strip();
         if (cleanedText.startsWith("```json")) {
             cleanedText = cleanedText.substring(7).strip();

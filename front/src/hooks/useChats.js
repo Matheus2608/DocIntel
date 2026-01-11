@@ -13,10 +13,10 @@ export const useChats = () => {
     const fetchChats = async () => {
         setIsLoading(true);
         setError(null);
-        
+
         try {
             const response = await fetch(API_BASE_URL);
-            
+
             if (!response.ok) {
                 throw new Error('Erro ao carregar chats');
             }
@@ -37,23 +37,19 @@ export const useChats = () => {
     };
 
     // Deleta um chat
-    const deleteChat = async (chatId) => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/${chatId}`, {
-                method: 'DELETE'
-            });
-
-            if (!response.ok) {
-                throw new Error('Erro ao deletar chat');
+    const deleteChat = (chatId) => {
+        fetch(`http://localhost:8080/api/chats/${chatId}`,
+            { method: 'DELETE' }
+        ).then(response => {
+            if (response.ok) {
+                console.log('Chat messages deleted successfully');
+                setChats(prevChats => prevChats.filter(chat => chat.id !== chatId));
+            } else {
+                console.error('Failed to delete chat messages');
             }
-
-            setChats(prevChats => prevChats.filter(chat => chat.id !== chatId));
-            return true;
-        } catch (err) {
-            console.error('Erro ao deletar chat:', err);
-            setError(err.message);
-            return false;
-        }
+        }).catch(error => {
+            console.error('Error deleting chat messages:', error);
+        });
     };
 
     // Carrega chats ao montar

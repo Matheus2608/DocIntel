@@ -20,5 +20,17 @@ public class ChatMessageRepository implements PanacheRepositoryBase<ChatMessage,
         return find("chat.id = ?1 and role = 'user' order by createdAt desc", chatId)
                 .firstResultOptional();
     }
+
+    public long countNumberOfAssistantMessages(String chatId) {
+        return count("chat.id = ?1 and role = 'assistant'", chatId);
+    }
+
+    public long countNumberOfUserMessages(String chatId) {
+        return count("chat.id = ?1", chatId);
+    }
+
+    public long deleteMessages(String chatId) {
+        return delete("chat.id = ?1", chatId);
+    }
 }
 

@@ -132,7 +132,7 @@ public class DocumentSupportAgentWebSocket {
     @OnClose
     public void onClose(WebSocketConnection connection) {
         String chatId = connection.pathParam("chatId");
-        Log.infof("WebSocket closed: chatId=%s", chatId);
+        Log.infof("WebSocket connection closed - chatId=%s, connectionId=%s", chatId, connection.id());
     }
 
 }
