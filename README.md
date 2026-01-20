@@ -62,6 +62,34 @@ DocIntel é uma plataforma de análise de documentos com IA que permite você fa
 
 ---
 
+## 🤖 Spec-Driven Development (SDD)
+
+Este projeto está configurado para **Spec-Driven Development** usando [Tessl](https://tessl.io/), uma abordagem moderna onde especificações são escritas antes do código.
+
+### 🎯 Por que SDD?
+
+- **Menos alucinações de IA**: Specs do Tessl Registry explicam corretamente como usar bibliotecas
+- **Documentação viva**: Specs mantêm-se sincronizadas com o código
+- **Melhor colaboração**: Alinhamento claro entre desenvolvedores e agentes de IA
+
+### 📚 Começando com Tessl
+
+```bash
+# Fazer login no Tessl (necessário para usar o registry)
+tessl login
+
+# Pesquisar specs para bibliotecas que você usa
+tessl search quarkus
+tessl search react
+
+# Instalar specs no projeto
+tessl install quarkus/rest
+```
+
+**📖 Documentação completa**: Veja [SDD.md](./SDD.md) para guia detalhado de Spec-Driven Development com Tessl.
+
+---
+
 ## 🚀 Começando
 
 ### 📋 Pré-requisitos
