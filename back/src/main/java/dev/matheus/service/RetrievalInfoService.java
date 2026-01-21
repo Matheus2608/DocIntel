@@ -149,25 +149,44 @@ public class RetrievalInfoService {
             RetrievalSearchParams params
     ) {
         LOG.debugf("Performing search with strategy=%s for filename=%s", strategy, filename);
+
+        LOG.debug("Generating embedding for question...");
         Embedding questionEmbedding = embeddingModel.embed(question).content();
+        LOG.debug("Question embedding generated successfully");
+
         List<CompletableFuture<EmbeddingSearchResult<TextSegment>>> searchFutures = new ArrayList<>();
 
         if (strategy == SearchStrategy.HYPOTHETICAL_QUESTIONS || strategy == SearchStrategy.BOTH) {
             LOG.debug("Adding HYPOTHETICAL_QUESTIONS strategy to search");
             searchFutures.add(CompletableFuture.supplyAsync(
-                    () -> hypotheticalQuestionRetriever.search(questionEmbedding, filename, params.maxResults(), params.minSimilarity()),
+                    () -> {
+                        LOG.debug("Executing HYPOTHETICAL_QUESTIONS search...");
+                        EmbeddingSearchResult<TextSegment> result = hypotheticalQuestionRetriever.search(
+                                questionEmbedding, filename, params.maxResults(), params.minSimilarity());
+                        LOG.debugf("HYPOTHETICAL_QUESTIONS search completed with %d results", result.matches().size());
+                        return result;
+                    },
                     executorService));
         }
 
         if (strategy == SearchStrategy.FAKE_ANSWERS || strategy == SearchStrategy.BOTH) {
             LOG.debug("Adding FAKE_ANSWERS strategy to search");
             searchFutures.add(CompletableFuture.supplyAsync(
-                    () -> fakeAnswerRetriever.search(question, filename, params.maxResults(), params.minSimilarity()),
+                    () -> {
+                        LOG.debug("Executing FAKE_ANSWERS search...");
+                        EmbeddingSearchResult<TextSegment> result = fakeAnswerRetriever.search(
+                                question, filename, params.maxResults(), params.minSimilarity());
+                        LOG.debugf("FAKE_ANSWERS search completed with %d results", result.matches().size());
+                        return result;
+                    },
                     executorService));
         }
 
+        LOG.debug("Waiting for all search futures to complete...");
         CompletableFuture.allOf(searchFutures.toArray(new CompletableFuture[0])).join();
+        LOG.debug("All search futures completed");
 
+        LOG.debug("Collecting results from futures...");
         List<EmbeddingMatch<TextSegment>> matches = searchFutures.stream()
                 .map(CompletableFuture::join)
                 .flatMap(result -> result.matches().stream())

@@ -15,6 +15,8 @@ import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
 @ApplicationScoped
 public class ModelConfig {
 
@@ -94,8 +96,8 @@ public class ModelConfig {
     @ApplicationScoped
     public VertexAiScoringModel vertexAiScoringModel() {
         return VertexAiScoringModel.builder()
-                .projectId(System.getenv("GCP_PROJECT_ID"))
-                .projectNumber(System.getenv("{GCP_PROJECT_NUM"))
+                .projectId(ensureNotNull(System.getenv("GCP_PROJECT_ID"), "GCP_PROJECT_ID"))
+                .projectNumber(ensureNotNull(System.getenv("GCP_PROJECT_NUM"), "GCP_PROJECT_NUM"))
                 .model("semantic-ranker-512")
                 .location("southamerica-east1")
                 .build();

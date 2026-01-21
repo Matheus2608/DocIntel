@@ -38,7 +38,7 @@ export const useChats = () => {
 
     // Deleta um chat
     const deleteChat = (chatId) => {
-        fetch(`http://localhost:8080/api/chats/${chatId}`,
+        fetch(`http://localhost:8080/api/chats/${chatId}/messages`,
             { method: 'DELETE' }
         ).then(response => {
             if (response.ok) {

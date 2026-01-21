@@ -39,24 +39,25 @@ public class DocumentSupportAgentWebSocket {
     @RunOnVirtualThread
     @Transactional
     public String onOpen(WebSocketConnection connection) {
-        String chatId = connection.pathParam("chatId");
-        Log.infof("WebSocket connection opened - chatId=%s, connectionId=%s", chatId, connection.id());
-
-        Chat chat = chatService.getChat(chatId);
-
-        Log.infof("Chat loaded for WebSocket session: chatId=%s, title=%s, hasDocument=%s",
-                chatId, chat.title, chat.documentFile != null);
-
-        if (chat.documentFile != null) {
-            DocumentFile doc = chat.documentFile;
-            Log.debugf("Document available in session: fileName=%s, size=%d bytes",
-                    doc.fileName, doc.fileSize);
-            return getOnOpenMessage(chatId, chat.title);
-
-        } else {
-            Log.warnf("No document found for chat: chatId=%s, title=%s", chatId, chat.title);
-            return String.format("É necessário fazer upload de um documento para iniciar o chat '%s'.", chat.title);
-        }
+        return "";
+//        String chatId = connection.pathParam("chatId");
+//        Log.infof("WebSocket connection opened - chatId=%s, connectionId=%s", chatId, connection.id());
+//
+//        Chat chat = chatService.getChat(chatId);
+//
+//        Log.infof("Chat loaded for WebSocket session: chatId=%s, title=%s, hasDocument=%s",
+//                chatId, chat.title, chat.documentFile != null);
+//
+//        if (chat.documentFile != null) {
+//            DocumentFile doc = chat.documentFile;
+//            Log.debugf("Document available in session: fileName=%s, size=%d bytes",
+//                    doc.fileName, doc.fileSize);
+//            return getOnOpenMessage(chatId, chat.title);
+//
+//        } else {
+//            Log.warnf("No document found for chat: chatId=%s, title=%s", chatId, chat.title);
+//            return String.format("É necessário fazer upload de um documento para iniciar o chat '%s'.", chat.title);
+//        }
     }
 
     private String getOnOpenMessage(String chatId, String title) {

@@ -46,21 +46,33 @@ public class FakeAnswerRetriever {
                 filename, maxResults, minSimilarity);
         LOG.debugf("Generating fake answer for question: %s", question);
 
-        String fakeAnswer = fakeAnswerAiService.fakeAnswer(question);
-        LOG.debugf("Fake answer generated (length=%d): %s",
-                fakeAnswer.length(),
-                fakeAnswer.substring(0, Math.min(100, fakeAnswer.length())));
+        String fakeAnswer;
+        try {
+            fakeAnswer = fakeAnswerAiService.fakeAnswer(question);
+            LOG.debugf("Fake answer generated (length=%d): %s",
+                    fakeAnswer.length(),
+                    fakeAnswer.substring(0, Math.min(100, fakeAnswer.length())));
+        } catch (Exception e) {
+            LOG.errorf(e, "Error generating fake answer for question: %s", question);
+            throw e;
+        }
 
-        EmbeddingSearchResult<TextSegment> result = embeddingStore.search(
-                EmbeddingSearchRequest.builder()
-                        .maxResults(maxResults * 2)
-                        .minScore(minSimilarity)
-                        .queryEmbedding(embeddingModel.embed(fakeAnswer).content())
-                        .filter(new IsEqualTo(FILE_NAME_KEY, filename))
-                        .build()
-        );
-
-        LOG.debugf("Raw search returned %d results", result.matches().size());
+        LOG.debug("Generating embedding for fake answer...");
+        EmbeddingSearchResult<TextSegment> result;
+        try {
+            result = embeddingStore.search(
+                    EmbeddingSearchRequest.builder()
+                            .maxResults(maxResults * 2)
+                            .minScore(minSimilarity)
+                            .queryEmbedding(embeddingModel.embed(fakeAnswer).content())
+                            .filter(new IsEqualTo(FILE_NAME_KEY, filename))
+                            .build()
+            );
+            LOG.debugf("Raw search returned %d results", result.matches().size());
+        } catch (Exception e) {
+            LOG.errorf(e, "Error during embedding search for fake answer");
+            throw e;
+        }
 
         List<EmbeddingMatch<TextSegment>> filteredMatches = result.matches().stream()
                 .filter(match -> !match.embedded().metadata().containsKey(PARAGRAPH_KEY))

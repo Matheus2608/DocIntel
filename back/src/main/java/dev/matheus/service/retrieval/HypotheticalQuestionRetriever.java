@@ -39,17 +39,24 @@ public class HypotheticalQuestionRetriever {
         LOG.debugf("HypotheticalQuestion search - filename=%s, maxResults=%d, minSimilarity=%.2f",
                 filename, maxResults, minSimilarity);
 
-        EmbeddingSearchResult<TextSegment> result = embeddingStore.search(
-                EmbeddingSearchRequest.builder()
-                        .maxResults(maxResults * 2)
-                        .minScore(minSimilarity)
-                        .queryEmbedding(questionEmbedding)
-                        .filter(new IsEqualTo(FILE_NAME_KEY, filename))
-                        .build()
-        );
+        LOG.debug("Executing embedding store search...");
+        EmbeddingSearchResult<TextSegment> result;
+        try {
+            result = embeddingStore.search(
+                    EmbeddingSearchRequest.builder()
+                            .maxResults(maxResults * 2)
+                            .minScore(minSimilarity)
+                            .queryEmbedding(questionEmbedding)
+                            .filter(new IsEqualTo(FILE_NAME_KEY, filename))
+                            .build()
+            );
+            LOG.debugf("Raw search returned %d results", result.matches().size());
+        } catch (Exception e) {
+            LOG.errorf(e, "Error during embedding search for hypothetical questions");
+            throw e;
+        }
 
-        LOG.debugf("Raw search returned %d results", result.matches().size());
-
+        LOG.debug("Filtering results with PARAGRAPH_KEY...");
         List<EmbeddingMatch<TextSegment>> filteredMatches = result.matches().stream()
                 .filter(match -> match.embedded().metadata().containsKey(PARAGRAPH_KEY))
                 .limit(maxResults)

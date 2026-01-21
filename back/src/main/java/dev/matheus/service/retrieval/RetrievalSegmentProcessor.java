@@ -3,15 +3,12 @@ package dev.matheus.service.retrieval;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.vertexai.VertexAiScoringModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
-import dev.matheus.ai.ScoringModel;
 import dev.matheus.dto.RetrievalSegment;
-import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -64,15 +61,26 @@ public class RetrievalSegmentProcessor {
     }
 
     private RetrievalSegment createRetrievalSegment(EmbeddingMatch<TextSegment> match, String question) {
-        String paragraph = getParagraph(match);
-        var scoreResponse = scoringModel.score(paragraph, question);
-        Log.infof("scoreResponse = %s", scoreResponse);
-        Double score = scoreResponse.content();
-        LOG.debugf("Scored paragraph (%.4f): %s", score,
-                paragraph.substring(0, Math.min(50, paragraph.length())));
+
+        String paragraphFromMetadata = match.embedded().metadata().getString(PARAGRAPH_KEY);
+        String paragraph = paragraphFromMetadata != null ? paragraphFromMetadata : match.embedded().text();
+        String questionToBeSaved = paragraphFromMetadata != null ? match.embedded().text() : question;
+        String paragraphPreview = paragraph.substring(0, Math.min(50, paragraph.length()));
+
+        LOG.debugf("Calling VertexAI scoring for paragraph preview: %s...", paragraphPreview);
+
+        Double score;
+        try {
+            var scoreResponse = scoringModel.score(paragraph, question);
+            score = scoreResponse.content();
+            LOG.debugf("VertexAI score received: %.4f for paragraph: %s...", score, paragraphPreview);
+        } catch (Exception e) {
+            LOG.errorf(e, "Error calling VertexAI scoring model for paragraph: %s...", paragraphPreview);
+            throw e;
+        }
 
         return new RetrievalSegment(
-                question,
+                questionToBeSaved,
                 paragraph,
                 match.score(),
                 score

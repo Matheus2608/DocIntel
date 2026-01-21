@@ -251,7 +251,11 @@ public class ChatService {
                 .limit(Math.max(0, allMessages.size() - 1)) // Exclude last message
                 .toList();
 
-        List<String> result = relevantMessages.subList(startIdx, endIdx).stream()
+        // Bounds checking to prevent IndexOutOfBoundsException
+        int safeStartIdx = Math.max(0, Math.min(startIdx, relevantMessages.size()));
+        int safeEndIdx = Math.max(safeStartIdx, Math.min(endIdx, relevantMessages.size()));
+
+        List<String> result = relevantMessages.subList(safeStartIdx, safeEndIdx).stream()
                 .map(msg -> msg.content)
                 .toList();
 

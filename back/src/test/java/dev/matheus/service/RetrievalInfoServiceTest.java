@@ -49,8 +49,6 @@ class RetrievalInfoServiceTest {
     private static final double MINIMUM_SIMILARITY_SCORE = 0.75f;
     private static final double MINIMUM_SCORE = 0.65f;
 
-//    private final Filter containsParagraphFilter = obj -> obj instanceof Metadata metadata && metadata.containsKey(PARAGRAPH_KEY);
-
     @Test
     void getVector() {
         String question = "quais os tempos de corte e a distância dos pontos de controle para a distancia de 64km?";
