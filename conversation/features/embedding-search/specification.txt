@@ -1,0 +1,1162 @@
+
+ ▐▛███▜▌   Claude Code v2.1.22
+▝▜█████▛▘  Opus 4.5 · Claude Pro
+  ▘▘ ▝▝    ~/code/DocIntel
+
+❯ read claude files 
+
+● I can see from the system context that the project instructions are already
+  loaded. These include:
+
+  1. CLAUDE.md - Project Instructions with workflow, tech stack, and phase
+  status
+  2. AGENTS.md - MANDATORY implementation sequence with MCP tools, commands,
+  subagents, and skills
+  3. .tessl/RULES.md - Agent rules referencing the query_library_docs tool
+
+  I've reviewed these files from the system context. Here's what I understand:
+
+  Key Requirements:
+  - TDD Mandatory: RED (failing tests) → GREEN (implementation) → REFACTOR
+  (quality)
+  - Must use subagents (not manual coding):
+    - tdd-test-writer for test writing
+    - tdd-implementer for implementation
+    - tdd-refactorer for optimization
+  - Must query library docs before coding using mcp__tessl__query_library_docs
+  - Tech Stack: Node.js 20, Express, PostgreSQL, Prisma, React 18, TypeScript,
+  Vite
+  - Current Phase: Phase 4 Review System (Frontend) → USE TDD SUBAGENTS
+
+  Current Project Status:
+  - Phases 1-4 (Backend) complete
+  - Phase 4 (Frontend) in progress using TDD
+  - Phases 5-8 pending
+
+  What would you like to work on? I'm ready to follow the implementation
+  sequence for any feature you need.
+
+❯ /speckit.specify i want to create a new page where i can submit some text and 
+show me the result of searching that text on the embedding store (pgvector). It 
+should should me good information, like the text, metadata and similarity (if 
+you think another one, put it there). it should also be able to add entries or 
+update entries on the embedding database. the results should come in descendant 
+order related to vector similatiry. feel free to ask me any questions in the 
+mean time 
+
+● I'll follow the /speckit.specify workflow to create a specification for your
+  embedding search page feature.
+
+  Let me start by extracting key information and checking for existing branches
+  with similar names.
+
+● Bash(git fetch --all --prune 2>&1 | head -20)
+  ⎿  (No content)
+
+● Read 1 file (ctrl+o to expand)
+
+● Now let me check for existing branches and specs with similar naming patterns:
+
+● Bash(git branch -a | grep -E 'embedding|search|vector' || echo "No existing
+      embedding/search/vector branches")
+  ⎿  No existing embedding/search/vector branches
+
+● Searched for 1 pattern (ctrl+o to expand)
+
+● Bash(git ls-remote --heads origin | grep -E '[0-9]+-' | head -20)
+  ⎿  (No content)
+
+● Bash(find /home/matheus/code/DocIntel/specs -maxdepth 1 -type d 2>/dev/null |
+      sort)
+  ⎿  (No content)
+
+● Searched for 1 pattern (ctrl+o to expand)
+
+● Let me check the .specify directory structure:
+
+● Read 3 files (ctrl+o to expand)
+
+● Perfect! Now let me analyze the feature and ask clarifying questions before
+  creating the spec. Based on your description, I can see several areas that
+  need clarification for a complete specification:
+
+● User answered Claude's questions:
+  ⎿  · What type of embeddings are you working with (text, images, 
+     documents) and who creates/manages them? → please, read project 
+     context. it will answer your question. but the embedding are made from 
+     the file user uploaded. the file in ingested, extracted, splitted and 
+     embeeded with hypothetical questions
+
+     · For the add/update entries feature, should it automatically generate 
+     embeddings or require users to provide pre-generated embedding vectors?
+      → read project
+
+     · What metadata should be editable when updating an entry? → Custom 
+     key-value pairs
+
+● Let me explore the project context to better understand the existing
+  architecture:
+
+● Explore(Understanding embedding and ingestion architecture)
+  ⎿  Done (42 tool uses · 54.7k tokens · 1m 29s)
+
+● Excellent! Now I have the full context. Let me create the feature
+  specification. First, I'll determine the feature number and short name:
+
+● Bash(git branch -a | grep -E '^.*[0-9]+-' | sed 's/.*\([0-9]\+\)-.*/\1/' |
+      sort -n | tail -5)
+  ⎿  1
+
+● Now let me run the create-new-feature script:
+
+● Bash(/bin/bash .specify/scripts/bash/create-new-feature.sh --json "i want to
+      create a new page where i can submit some text and show me the result of
+      searching that…)
+  ⎿ Tool use rejected with user message: update the json text. dont put my 
+    actual input that i gave you
+
+● Let me fix that and provide a cleaner feature description:
+
+● Bash(.specify/scripts/bash/create-new-feature.sh --json --number 2
+      --short-name "embedding-search" "Embedding Search & Management Page" 2>&1)
+  ⎿  Tool use rejected with user message: you removed the json argument. please 
+     summarize my request and put on there
+
+● Bash(.specify/scripts/bash/create-new-feature.sh --json --number 2
+      --short-name "embedding-search" "Search embeddings by text query,
+      displaying results with similari…)
+  ⎿  Switched to a new branch '002-embedding-search'
+     {
+       "BRANCH_NAME": "002-embedding-search",
+     … +4 lines (ctrl+o to expand)
+
+● Perfect! Now let me write the comprehensive specification:
+
+● Write(specs/002-embedding-search/spec.md)
+  ⎿  Error writing file
+
+● Read 1 file (ctrl+o to expand)
+
+● Update(specs/002-embedding-search/spec.md)
+  ⎿  Added 5 lines, removed 5 lines
+      1 -# Feature Specification: [FEATURE NAME]                         
+      1 +# Feature Specification: Embedding Search & Management          
+      2  
+      3 -**Feature Branch**: `[###-feature-name]`                        
+      4 -**Created**: [DATE]                                             
+      5 -**Status**: Draft                                               
+      6 -**Input**: User description: "$ARGUMENTS"                       
+      3 +**Feature Branch**: `002-embedding-search`                      
+      4 +**Created**: 2026-01-28                                         
+      5 +**Status**: Draft                                               
+      6 +**Input**: Create a page to search text in pgvector embedding st
+        +ore, showing results with text, metadata, and similarity scores 
+        +in descending order; also add/update entries in the embedding da
+        +tabase                                                          
+      7  
+      8  ## User Scenarios & Testing *(mandatory)*
+      9  
+
+● Update(specs/002-embedding-search/spec.md)
+  ⎿  Added 32 lines, removed 25 lines
+      20    - Demonstrated to users independently
+      21  -->
+      22  
+      23 -### User Story 1 - [Brief Title] (Priority: P1)                
+      23 +### User Story 1 - Search Embeddings by Text Query (Priority: P
+         +1)                                                             
+      24  
+      25 -[Describe this user journey in plain language]                 
+      25 +A user wants to explore what content exists in the embedding da
+         +tabase by submitting a text query and seeing the most relevant 
+         +chunks. This is useful for understanding what documents have be
+         +en ingested, discovering related content across uploaded files,
+         + and debugging the embedding/chunking quality.                 
+      26  
+      27 -**Why this priority**: [Explain the value and why it has this p
+         -riority level]                                                 
+      27 +**Why this priority**: This is the core feature that delivers i
+         +mmediate value - users can search their ingested documents thro
+         +ugh a dedicated interface without the conversational chatbot in
+         +teraction. It's the foundation for all other functionality.    
+      28  
+      29 -**Independent Test**: [Describe how this can be tested independ
+         -ently - e.g., "Can be fully tested by [specific action] and del
+         -ivers [specific value]"]                                       
+      29 +**Independent Test**: A user can submit any text query, receive
+         + ranked search results with similarity scores, and understand w
+         +hat content matched and why (through metadata). This alone prov
+         +ides value for exploring the embedding database.               
+      30  
+      31  **Acceptance Scenarios**:
+      32  
+      33 -1. **Given** [initial state], **When** [action], **Then** [expe
+         -cted outcome]                                                  
+      34 -2. **Given** [initial state], **When** [action], **Then** [expe
+         -cted outcome]                                                  
+      33 +1. **Given** a user is on the Embedding Search page, **When** t
+         +hey enter a text query and click "Search", **Then** the system 
+         +displays matching embedding entries sorted by similarity score 
+         +in descending order with the original chunk text visible       
+      34 +2. **Given** search results are displayed, **When** a result ro
+         +w is expanded, **Then** the user sees complete metadata includi
+         +ng file name, similarity score, and semantic ranking score     
+      35 +3. **Given** multiple results exist, **When** results are displ
+         +ayed, **Then** the highest similarity scores appear first (desc
+         +ending order)                                                  
+      36 +4. **Given** a user performs an empty or whitespace-only search
+         +, **When** they click "Search", **Then** an error message expla
+         +ins that a valid query is required                             
+      37 +5. **Given** a search returns no results above the minimum thre
+         +shold, **When** results load, **Then** a message indicates "No 
+         +matching content found" with suggestions to try different terms
+      38  
+      39  ---
+      40  
+      38 -### User Story 2 - [Brief Title] (Priority: P2)                
+      41 +### User Story 2 - Add New Embedding Entries (Priority: P2)    
+      42  
+      40 -[Describe this user journey in plain language]                 
+      43 +A user wants to manually add new text content to the embedding 
+         +database without uploading an entire document. This enables qui
+         +ck testing of embeddings, adding reference material, or supplem
+         +enting existing ingested documents with additional context.    
+      44  
+      42 -**Why this priority**: [Explain the value and why it has this p
+         -riority level]                                                 
+      45 +**Why this priority**: Enables power users and developers to te
+         +st embedding quality and manage database content. Less critical
+         + than search but adds testing/management capabilities.         
+      46  
+      44 -**Independent Test**: [Describe how this can be tested independ
+         -ently]                                                         
+      47 +**Independent Test**: A user can submit text content with optio
+         +nal metadata, the system generates an embedding and stores it, 
+         +and subsequent searches can find that newly added content.     
+      48  
+      49  **Acceptance Scenarios**:
+      50  
+      48 -1. **Given** [initial state], **When** [action], **Then** [expe
+         -cted outcome]                                                  
+      51 +1. **Given** a user is on the Embedding Search page, **When** t
+         +hey click "Add Entry", **Then** a form appears with fields for 
+         +text content and optional metadata (file name/source identifier
+         +)                                                              
+      52 +2. **Given** the add entry form is open, **When** the user ente
+         +rs text and clicks "Add to Database", **Then** the system gener
+         +ates an embedding for that text, stores it with the provided me
+         +tadata, and shows a success message                            
+      53 +3. **Given** an entry was successfully added, **When** the user
+         + performs a search, **Then** the newly added entry can be found
+         + in search results if it's relevant to the query               
+      54 +4. **Given** the text field is empty, **When** the user attempt
+         +s to submit, **Then** a validation error prevents submission an
+         +d prompts for required content                                 
+      55 +5. **Given** an entry has been added, **When** the same text is
+         + searched for, **Then** it appears in results with appropriate 
+         +similarity score                                               
+      56  
+      57  ---
+      58  
+      52 -### User Story 3 - [Brief Title] (Priority: P3)                
+      59 +### User Story 3 - Update Existing Embedding Entries (Priority:
+         + P3)                                                           
+      60  
+      54 -[Describe this user journey in plain language]                 
+      61 +A user wants to modify existing embedding entries - either upda
+         +ting the associated metadata or updating the text content (whic
+         +h triggers re-embedding). This supports content corrections and
+         + metadata refinement.                                          
+      62  
+      56 -**Why this priority**: [Explain the value and why it has this p
+         -riority level]                                                 
+      63 +**Why this priority**: Nice-to-have for power users managing em
+         +bedding database content. Useful but not essential for MVP sear
+         +ch functionality.                                              
+      64  
+      58 -**Independent Test**: [Describe how this can be tested independ
+         -ently]                                                         
+      65 +**Independent Test**: A user can select an existing entry from 
+         +search results, edit its metadata or text, and the changes pers
+         +ist and are reflected in subsequent searches.                  
+      66  
+      67  **Acceptance Scenarios**:
+      68  
+      62 -1. **Given** [initial state], **When** [action], **Then** [expe
+         -cted outcome]                                                  
+      69 +1. **Given** a user has search results displayed, **When** they
+         + click an edit button on a result row, **Then** an edit form ap
+         +pears pre-populated with the current text, file name, and other
+         + metadata                                                      
+      70 +2. **Given** the edit form is open, **When** the user modifies 
+         +metadata fields and clicks "Update", **Then** the changes are s
+         +aved and a success message confirms the update                 
+      71 +3. **Given** the user modifies the text content in the edit for
+         +m, **When** they click "Update", **Then** the system re-generat
+         +es the embedding from the new text, updates it in the database,
+         + and reflects the change in subsequent searches                
+      72 +4. **Given** an entry has been updated, **When** the user close
+         +s the edit form, **Then** the search results automatically refr
+         +esh to show the updated entry                                  
+      73 +5. **Given** an entry update fails, **When** the error occurs, 
+         +**Then** an error message explains the issue and the user can r
+         +etry                                                           
+      74  
+      75  ---
+      76  
+      66 -[Add more user stories as needed, each with an assigned priorit
+         -y]                                                             
+      67 -                                                               
+      77  ### Edge Cases
+      78  
+      70 -<!--                                                           
+      71 -  ACTION REQUIRED: The content in this section represents place
+         -holders.                                                       
+      72 -  Fill them out with the right edge cases.                     
+      73 --->                                                            
+      79 +- What happens when embedding generation takes longer than expe
+         +cted? (Implement timeout handling with user feedback)          
+      80 +- How does the system handle very long text inputs? (Consider c
+         +hunking very long submissions to respect embedding model limits
+         +)                                                              
+      81 +- What happens if the pgvector database becomes unavailable? (R
+         +eturn appropriate error message to user)                       
+      82 +- Should there be a limit on number of custom entries a user ca
+         +n add? (Implementation decision - assume unlimited for MVP)    
+      83 +- How to handle duplicate/near-duplicate entries? (No deduplica
+         +tion required in MVP - user responsible for avoiding duplicates
+         +)                                                              
+      84  
+      75 -- What happens when [boundary condition]?                      
+      76 -- How does system handle [error scenario]?                     
+      77 -                                                               
+      85  ## Requirements *(mandatory)*
+      86  
+      87  <!--
+
+● Update(specs/002-embedding-search/spec.md)
+  ⎿  Added 30 lines, removed 12 lines
+       91  
+       92  ### Functional Requirements
+       93  
+       94 -- **FR-001**: System MUST [specific capability, e.g., "allow u
+          -sers to create accounts"]                                     
+       95 -- **FR-002**: System MUST [specific capability, e.g., "validat
+          -e email addresses"]                                           
+       96 -- **FR-003**: Users MUST be able to [key interaction, e.g., "r
+          -eset their password"]                                         
+       97 -- **FR-004**: System MUST [data requirement, e.g., "persist us
+          -er preferences"]                                              
+       98 -- **FR-005**: System MUST [behavior, e.g., "log all security e
+          -vents"]                                                       
+       94 +- **FR-001**: System MUST provide a dedicated page/interface f
+          +or searching embeddings with a text input field and search but
+          +ton                                                           
+       95 +- **FR-002**: System MUST query pgvector embeddings using the 
+          +user-submitted text, converting it to an embedding vector befo
+          +re search                                                     
+       96 +- **FR-003**: System MUST return embedding matches sorted in d
+          +escending order by similarity score                           
+       97 +- **FR-004**: System MUST display search results showing: orig
+          +inal chunk text, similarity score (embedding-based), semantic 
+          +ranking score (if available), and file name metadata          
+       98 +- **FR-005**: System MUST allow users to expand or view full r
+          +esult details including all available metadata fields         
+       99 +- **FR-006**: System MUST support adding new embedding entries
+          + through a form that accepts text content and optional metadat
+          +a (source/file name)                                          
+      100 +- **FR-007**: System MUST automatically generate embeddings fo
+          +r user-submitted text using the same embedding model (text-emb
+          +edding-3-small, 768 dimensions) used during document ingestion
+      101 +- **FR-008**: System MUST store newly added entries in pgvecto
+          +r with their embeddings and metadata                          
+      102 +- **FR-009**: System MUST support updating existing embedding 
+          +entries, allowing users to modify metadata (file name, custom 
+          +key-value pairs)                                              
+      103 +- **FR-010**: System MUST support updating text content of exi
+          +sting entries and re-generate their embeddings when text is mo
+          +dified                                                        
+      104 +- **FR-011**: System MUST provide form validation requiring no
+          +n-empty text content before allowing add/update operations    
+      105 +- **FR-012**: System MUST return appropriate error messages wh
+          +en search fails or returns no results                         
+      106 +- **FR-013**: System MUST prevent concurrent duplicate submiss
+          +ions (basic debouncing of add/update/search buttons)          
+      107 +- **FR-014**: System MUST log all add/update operations for au
+          +dit purposes                                                  
+      108  
+      100 -*Example of marking unclear requirements:*                    
+      101 -                                                              
+      102 -- **FR-006**: System MUST authenticate users via [NEEDS CLARIF
+          -ICATION: auth method not specified - email/password, SSO, OAut
+          -h?]                                                           
+      103 -- **FR-007**: System MUST retain user data for [NEEDS CLARIFIC
+          -ATION: retention period not specified]                        
+      104 -                                                              
+      109  ### Key Entities *(include if feature involves data)*
+      110  
+      107 -- **[Entity 1]**: [What it represents, key attributes without 
+          -implementation]                                               
+      108 -- **[Entity 2]**: [What it represents, relationships to other 
+          -entities]                                                     
+      111 +- **EmbeddingEntry**: Represents a single embedded text segmen
+          +t                                                             
+      112 +  - `id`: Unique identifier                                   
+      113 +  - `text`: Original text content that was embedded           
+      114 +  - `embedding_vector`: 768-dimensional vector (pgvector)     
+      115 +  - `similarity_score`: Cosine similarity score from embedding
+          + search (0.0-1.0)                                             
+      116 +  - `model_score`: Semantic ranking score from VertexAI (0.0-1
+          +.0) - optional/lazy-loaded                                    
+      117 +  - `metadata`: Flexible JSON object containing:              
+      118 +    - `file_name`: Source document or custom identifier       
+      119 +    - `custom_fields`: User-provided key-value pairs (implemen
+          +tation detail)                                                
+      120 +  - `created_at`: Timestamp of entry creation                 
+      121 +  - `updated_at`: Timestamp of last modification              
+      122  
+      123 +- **SearchQuery**: User's search request                      
+      124 +  - `text`: Query text                                        
+      125 +  - `min_similarity`: Optional threshold (default 0.7)        
+      126 +  - `max_results`: Result limit (default 10)                  
+      127 +                                                              
+      128  ## Success Criteria *(mandatory)*
+      129  
+      130  <!--
+
+● Update(specs/002-embedding-search/spec.md)
+  ⎿  Added 25 lines, removed 4 lines
+      134  
+      135  ### Measurable Outcomes
+      136  
+      137 -- **SC-001**: [Measurable metric, e.g., "Users can complete ac
+          -count creation in under 2 minutes"]                           
+      138 -- **SC-002**: [Measurable metric, e.g., "System handles 1000 c
+          -oncurrent users without degradation"]                         
+      139 -- **SC-003**: [User satisfaction metric, e.g., "90% of users s
+          -uccessfully complete primary task on first attempt"]          
+      140 -- **SC-004**: [Business metric, e.g., "Reduce support tickets 
+          -related to [X] by 50%"]                                       
+      137 +- **SC-001**: Users can submit a text query and receive result
+          +s in under 2 seconds for typical database sizes (< 100k embedd
+          +ings)                                                         
+      138 +- **SC-002**: Search results are accurately ranked by similari
+          +ty score with the highest matching embeddings appearing first 
+      139 +- **SC-003**: Users can add a new embedding entry and successf
+          +ully search for it within 5 seconds of addition               
+      140 +- **SC-004**: All search results display required metadata fie
+          +lds (text, similarity score, file name) without requiring addi
+          +tional clicks                                                 
+      141 +- **SC-005**: Users can update embedding entries (text or meta
+          +data) and changes persist correctly (verified by subsequent se
+          +arch)                                                         
+      142 +- **SC-006**: Form validation prevents invalid submissions (em
+          +pty text) with clear error messages, achieving 100% validation
+          + coverage                                                     
+      143 +- **SC-007**: The interface supports searching across database
+          + sizes up to 50,000 entries without performance degradation   
+      144 +- **SC-008**: Newly added entries are immediately available in
+          + subsequent searches (no cache staleness)                     
+      145 +                                                              
+      146 +## Assumptions                                                
+      147 +                                                              
+      148 +- **Embedding Model**: The same embedding model (text-embeddin
+          +g-3-small, 768 dimensions) used during document ingestion will
+          + be available for generating embeddings for user-submitted tex
+          +t                                                             
+      149 +- **Database Availability**: PostgreSQL with pgvector extensio
+          +n is always available and performant                          
+      150 +- **Metadata Structure**: Custom metadata for added entries wi
+          +ll use simple key-value pairs (no nested objects required in M
+          +VP)                                                           
+      151 +- **Search Scope**: All searches query the entire embedding da
+          +tabase regardless of file source (no per-file filtering in ini
+          +tial version)                                                 
+      152 +- **User Authorization**: All authenticated users can search a
+          +nd add entries (no role-based restrictions in MVP)            
+      153 +- **Batch Operations**: Updates are single-entry only; no bulk
+          + operations required                                          
+      154 +- **Semantic Ranking**: VertexAI semantic ranker availability 
+          +is assumed but graceful degradation to embedding similarity on
+          +ly is acceptable                                              
+      155 +                                                              
+      156 +## Design Notes                                               
+      157 +                                                              
+      158 +- **Frontend**: React component(s) with React Query for API ca
+          +lls and form state management                                 
+      159 +- **Backend**: New REST API endpoints for search, add, and upd
+          +ate operations                                                
+      160 +- **Integration Points**: Leverage existing embedding generati
+          +on service (already used during document ingestion)           
+      161 +- **UI Patterns**: Match existing design system (custom CSS va
+          +riables, no new dependencies)                                 
+
+● Perfect! Now let me create the quality checklist and validate the
+  specification:
+
+● Bash(mkdir -p
+      /home/matheus/code/DocIntel/specs/002-embedding-search/checklists)
+  ⎿  (No content)
+
+● Write(specs/002-embedding-search/checklists/requirements.md)
+  ⎿  Wrote 43 lines to specs/002-embedding-search/checklists/requirements.md
+
+       1 # Specification Quality Checklist: Embedding Search & Management
+       2 
+       3 **Purpose**: Validate specification completeness and quality bef
+         ore proceeding to planning
+       4 **Created**: 2026-01-28
+       5 **Feature**: [Embedding Search & Management](../spec.md)
+       6 
+       7 ## Content Quality
+       8 
+       9 - [x] No implementation details (languages, frameworks, APIs)
+      10 - [x] Focused on user value and business needs
+     … +33 lines (ctrl+o to expand)
+
+● Excellent! Let me verify the spec file looks complete:
+
+● Read 1 file (ctrl+o to expand)
+
+● Perfect! Now let me commit this work:
+
+● Bash(git add specs/002-embedding-search/ && git status)
+  ⎿  No ramo 002-embedding-search
+     Mudanças a serem submetidas:
+       (use "git restore --staged <file>..." to unstage)
+     … +2 lines (ctrl+o to expand)
+
+● Bash(git commit -m "Add specification for embedding search and management
+      feature…)
+  ⎿ [002-embedding-search 8fed5bd] Add specification for embedding search a
+    nd management feature
+     2 files changed, 203 insertions(+)
+    … +3 lines (ctrl+o to expand)
+
+
+● Perfect! ✅ Specification Complete
+
+  Summary
+
+  I've successfully created a comprehensive specification for your embedding
+  search and management feature. Here's what was delivered:
+
+  Feature Branch: 002-embedding-search
+
+  Specification File:
+  /home/matheus/code/DocIntel/specs/002-embedding-search/spec.md
+
+  Key Components
+
+  Three Prioritized User Stories:
+
+  1. P1 - Search Embeddings (Core MVP)
+    - Users submit text queries and receive ranked results sorted by similarity
+  score
+    - Results display: chunk text, similarity score, semantic ranking, metadata
+    - Handles empty queries and no-results cases with appropriate messages
+  2. P2 - Add Entries (Power user feature)
+    - Users manually add text to the embedding database with optional metadata
+    - System auto-generates embeddings using the existing text-embedding-3-small
+   model
+    - Newly added entries immediately searchable
+  3. P3 - Update Entries (Nice-to-have)
+    - Users edit metadata or text content of existing entries
+    - Text modifications trigger automatic re-embedding
+    - Changes persist across searches
+
+  14 Functional Requirements covering search, add, update, validation, error
+  handling, and logging
+
+  8 Success Criteria with measurable outcomes (response times, accuracy, scale
+  support)
+
+  Clear Assumptions about embedding model availability, database performance,
+  metadata structure, and search scope
+
+  Quality Validation
+
+  ✅ All specification quality checks passed:
+  - No implementation details in the spec
+  - All requirements are testable and unambiguous
+  - Success criteria are technology-agnostic and measurable
+  - No clarifications needed
+  - Ready for planning phase
+
+  Next Steps
+
+  The specification is ready for the planning phase. Run /speckit.plan whenever
+  you're ready to design the technical architecture for backend API endpoints
+  and frontend components.
+
+✻ Worked for 3m 51s
+
+❯ /model 
+  ⎿  Set model to Default (Opus 4.5 · Most capable for complex work)
+
+❯ /speckit.plan 
+
+● I'll execute the planning workflow for the embedding search feature.
+
+● Bash(.specify/scripts/bash/setup-plan.sh --json 2>&1)
+  ⎿ Copied plan template to /home/matheus/code/DocIntel/specs/002-embedding
+    -search/plan.md
+    {
+    … +9 lines (ctrl+o to expand)
+
+
+● Read 2 files (ctrl+o to expand)
+
+● Now I need to explore the existing codebase structure to understand the
+  current patterns for both backend and frontend:
+
+● Explore(Explore backend and frontend structure)
+  ⎿  Done (37 tool uses · 54.1k tokens · 2m 6s)
+
+● Excellent! Now I have a comprehensive understanding. Let me write the
+  implementation plan with proper technical context and generate the research
+  and design artifacts:
+
+● Write(specs/002-embedding-search/plan.md)
+  ⎿  Added 66 lines, removed 70 lines
+        1 -# Implementation Plan: [FEATURE]                              
+        1 +# Implementation Plan: Embedding Search & Management          
+        2  
+        3 -**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**
+          -: [link]                                                      
+        4 -**Input**: Feature specification from `/specs/[###-feature-nam
+          -e]/spec.md`                                                   
+        3 +**Branch**: `002-embedding-search` | **Date**: 2026-01-28 | **
+          +Spec**: [spec.md](./spec.md)                                  
+        4  
+        6 -**Note**: This template is filled in by the `/speckit.plan` co
+          -mmand. See `.specify/templates/commands/plan.md` for the execu
+          -tion workflow.                                                
+        7 -                                                              
+        5  ## Summary
+        6  
+       10 -[Extract from feature spec: primary requirement + technical ap
+          -proach from research]                                         
+        7 +Create a dedicated page for searching embeddings in pgvector b
+          +y text query, displaying results with similarity scores and me
+          +tadata in descending order. Users can also add new embedding e
+          +ntries (auto-generating vectors from text) and update existing
+          + entries (with re-embedding when text changes). Leverages exis
+          +ting LangChain4j embedding infrastructure.                    
+        8  
+        9  ## Technical Context
+       10  
+       14 -<!--                                                          
+       15 -  ACTION REQUIRED: Replace the content in this section with th
+          -e technical details                                           
+       16 -  for the project. The structure here is presented in advisory
+          - capacity to guide                                            
+       17 -  the iteration process.                                      
+       18 --->                                                           
+       11 +**Language/Version**: Java 21+ (Backend), TypeScript (Frontend
+          +)                                                             
+       12 +**Primary Dependencies**: Quarkus 3.30+, LangChain4j, React 19
+          +, Vite 7.2                                                    
+       13 +**Storage**: PostgreSQL 14+ with pgvector extension (existing)
+       14 +**Testing**: JUnit 5, Jest, React Testing Library             
+       15 +**Target Platform**: Web application (Linux server backend, br
+          +owser frontend)                                               
+       16 +**Project Type**: web (backend + frontend)                    
+       17 +**Performance Goals**: < 2 seconds search response, < 500ms UI
+          + interactions                                                 
+       18 +**Constraints**: RAG retrieval latency < 2 seconds (per consti
+          +tution)                                                       
+       19 +**Scale/Scope**: Up to 50,000 embedding entries               
+       20  
+       20 -**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75
+          - or NEEDS CLARIFICATION]                                      
+       21 -**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS
+          - CLARIFICATION]                                               
+       22 -**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files
+          - or N/A]                                                      
+       23 -**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIF
+          -ICATION]                                                      
+       24 -**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEE
+          -DS CLARIFICATION]                                             
+       25 -**Project Type**: [single/web/mobile - determines source struc
+          -ture]                                                         
+       26 -**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k
+          - lines/sec, 60 fps or NEEDS CLARIFICATION]                    
+       27 -**Constraints**: [domain-specific, e.g., <200ms p95, <100MB me
+          -mory, offline-capable or NEEDS CLARIFICATION]                 
+       28 -**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50
+          - screens or NEEDS CLARIFICATION]                              
+       29 -                                                              
+       21  ## Constitution Check
+       22  
+       23  *GATE: Must pass before Phase 0 research. Re-check after Phase
+            1 design.*
+       24  
+       34 -[Gates determined based on constitution file]                 
+       25 +| Principle | Status | Notes |                                
+       26 +|-----------|--------|-------|                                
+       27 +| I. Spec-Driven Development | ✅ PASS | Spec created via `/sp
+          +eckit.specify` before planning |                              
+       28 +| II. Test-Driven Development | ✅ READY | Will use TDD subage
+          +nts for implementation |                                      
+       29 +| III. First Principles | ✅ PASS | Explored existing code pat
+          +terns before proposing changes |                              
+       30 +| IV. Context Engineering | ✅ READY | Will query tessl for La
+          +ngChain4j patterns before implementation |                    
+       31 +| V. Simplicity & Atomicity | ✅ PASS | Minimal changes, reuse
+          +s existing embedding infrastructure |                         
+       32 +| VI. Root Cause Fixes | N/A | New feature, not a bug fix |   
+       33 +| VII. Progressive Disclosure | ✅ PASS | Plan documents decis
+          +ions and trade-offs |                                         
+       34  
+       35 +**Gate Status**: ✅ ALL GATES PASSED                          
+       36 +                                                              
+       37  ## Project Structure
+       38  
+       39  ### Documentation (this feature)
+       40  
+       41  ```text
+       41 -specs/[###-feature]/                                          
+       42 -├── plan.md              # This file (/speckit.plan command ou
+          -tput)                                                         
+       43 -├── research.md          # Phase 0 output (/speckit.plan comma
+          -nd)                                                           
+       44 -├── data-model.md        # Phase 1 output (/speckit.plan comma
+          -nd)                                                           
+       45 -├── quickstart.md        # Phase 1 output (/speckit.plan comma
+          -nd)                                                           
+       46 -├── contracts/           # Phase 1 output (/speckit.plan comma
+          -nd)                                                           
+       47 -└── tasks.md             # Phase 2 output (/speckit.tasks comm
+          -and - NOT created by /speckit.plan)                           
+       42 +specs/002-embedding-search/                                   
+       43 +├── plan.md              # This file                          
+       44 +├── research.md          # Phase 0 output                     
+       45 +├── data-model.md        # Phase 1 output                     
+       46 +├── quickstart.md        # Phase 1 output                     
+       47 +├── contracts/           # Phase 1 output (OpenAPI)           
+       48 +│   └── embedding-search-api.yaml                             
+       49 +└── tasks.md             # Phase 2 output (/speckit.tasks comm
+          +and)                                                          
+       50  ```
+       51  
+       52  ### Source Code (repository root)
+       51 -<!--                                                          
+       52 -  ACTION REQUIRED: Replace the placeholder tree below with the
+          - concrete layout                                              
+       53 -  for this feature. Delete unused options and expand the chose
+          -n structure with                                              
+       54 -  real paths (e.g., apps/admin, packages/something). The deliv
+          -ered plan must                                                
+       55 -  not include Option labels.                                  
+       56 --->                                                           
+       53  
+       54  ```text
+       59 -# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)       
+       60 -src/                                                          
+       61 -├── models/                                                   
+       62 -├── services/                                                 
+       63 -├── cli/                                                      
+       64 -└── lib/                                                      
+       55 +back/                                                         
+       56 +├── src/main/java/dev/matheus/                                
+       57 +│   ├── resource/                                             
+       58 +│   │   └── EmbeddingSearchResource.java    # NEW: REST API en
+          +dpoints                                                       
+       59 +│   ├── service/                                              
+       60 +│   │   └── EmbeddingSearchService.java     # NEW: Search/add/
+          +update logic                                                  
+       61 +│   └── dto/                                                  
+       62 +│       ├── EmbeddingSearchRequest.java     # NEW: Search requ
+          +est DTO                                                       
+       63 +│       ├── EmbeddingSearchResponse.java    # NEW: Search resp
+          +onse DTO                                                      
+       64 +│       ├── EmbeddingAddRequest.java        # NEW: Add entry r
+          +equest DTO                                                    
+       65 +│       └── EmbeddingUpdateRequest.java     # NEW: Update entr
+          +y request DTO                                                 
+       66 +└── src/test/java/dev/matheus/                                
+       67 +    ├── resource/                                             
+       68 +    │   └── EmbeddingSearchResourceTest.java                  
+       69 +    └── service/                                              
+       70 +        └── EmbeddingSearchServiceTest.java                   
+       71  
+       66 -tests/                                                        
+       67 -├── contract/                                                 
+       68 -├── integration/                                              
+       69 -└── unit/                                                     
+       70 -                                                              
+       71 -# [REMOVE IF UNUSED] Option 2: Web application (when "frontend
+          -" + "backend" detected)                                       
+       72 -backend/                                                      
+       72 +front/                                                        
+       73  ├── src/
+       74 -│   ├── models/                                               
+       75 -│   ├── services/                                             
+       76 -│   └── api/                                                  
+       77 -└── tests/                                                    
+       78 -                                                              
+       79 -frontend/                                                     
+       80 -├── src/                                                      
+       81 -│   ├── components/                                           
+       74  │   ├── pages/
+       83 -│   └── services/                                             
+       84 -└── tests/                                                    
+       85 -                                                              
+       86 -# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android
+          -" detected)                                                   
+       87 -api/                                                          
+       88 -└── [same as backend above]                                   
+       89 -                                                              
+       90 -ios/ or android/                                              
+       91 -└── [platform-specific structure: feature modules, UI flows, p
+          -latform tests]                                                
+       75 +│   │   └── EmbeddingSearch.tsx             # NEW: Main search
+          + page                                                         
+       76 +│   ├── components/                                           
+       77 +│   │   ├── EmbeddingSearchForm.tsx         # NEW: Search inpu
+          +t form                                                        
+       78 +│   │   ├── EmbeddingSearchResults.tsx      # NEW: Results dis
+          +play                                                          
+       79 +│   │   ├── EmbeddingAddModal.tsx           # NEW: Add entry m
+          +odal                                                          
+       80 +│   │   └── EmbeddingEditModal.tsx          # NEW: Edit entry 
+          +modal                                                         
+       81 +│   ├── hooks/                                                
+       82 +│   │   └── useEmbeddingSearch.ts           # NEW: Search/add/
+          +update hook                                                   
+       83 +│   └── types/                                                
+       84 +│       └── embedding.ts                    # NEW: TypeScript 
+          +types                                                         
+       85 +└── src/__tests__/                                            
+       86 +    ├── pages/                                                
+       87 +    │   └── EmbeddingSearch.test.tsx                          
+       88 +    └── components/                                           
+       89 +        └── EmbeddingSearchForm.test.tsx                      
+       90  ```
+       91  
+       94 -**Structure Decision**: [Document the selected structure and r
+          -eference the real                                             
+       95 -directories captured above]                                   
+       92 +**Structure Decision**: Web application pattern (backend/ + fr
+          +ontend/) following existing project conventions. New files org
+          +anized in parallel to existing ChatResource/ChatService patter
+          +ns.                                                           
+       93  
+       94  ## Complexity Tracking
+       95  
+       99 -> **Fill ONLY if Constitution Check has violations that must b
+          -e justified**                                                 
+       96 +> No violations to justify - design follows existing patterns 
+          +and stays minimal.                                            
+       97  
+       98  | Violation | Why Needed | Simpler Alternative Rejected Becaus
+           e |
+       99  |-----------|------------|------------------------------------
+           -|
+      103 -| [e.g., 4th project] | [current need] | [why 3 projects insuf
+          -ficient] |                                                    
+      104 -| [e.g., Repository pattern] | [specific problem] | [why direc
+          -t DB access insufficient] |                                   
+      100 +| None | N/A | N/A |                                          
+
+● Now let me generate Phase 0 research.md:
+
+● Write(specs/002-embedding-search/research.md)
+  ⎿  Wrote 190 lines to specs/002-embedding-search/research.md
+      1 # Research: Embedding Search & Management
+      2 
+      3 **Branch**: `002-embedding-search` | **Date**: 2026-01-28
+      4 
+      5 ## Research Questions
+      6 
+      7 ### 1. How to Search Embeddings Directly with LangChain4j?
+      8 
+      9 **Decision**: Use `EmbeddingStore.search()` with `EmbeddingSearch
+        Request` builder pattern
+     … +180 lines (ctrl+o to expand)
+
+● Now let me create Phase 1 artifacts - data-model.md:
+
+● Write(specs/002-embedding-search/data-model.md)
+  ⎿  Wrote 189 lines to specs/002-embedding-search/data-model.md
+      1 # Data Model: Embedding Search & Management
+      2 
+      3 **Branch**: `002-embedding-search` | **Date**: 2026-01-28
+      4 
+      5 ## Entities
+      6 
+      7 ### EmbeddingEntry (Read Model)
+      8 
+      9 Represents an embedding entry returned from search or retrieval o
+        perations. This is a **read model** - the actual storage is manag
+        ed by LangChain4j's pgvector EmbeddingStore.
+     … +179 lines (ctrl+o to expand)
+
+● Now let me create the API contracts:
+
+● Bash(mkdir -p
+      /home/matheus/code/DocIntel/specs/002-embedding-search/contracts)
+  ⎿  (No content)
+
+● Write(specs/002-embedding-search/contracts/embedding-search-api.yaml)
+  ⎿  Wrote 374 lines to
+     specs/002-embedding-search/contracts/embedding-search-api.yaml
+       1 openapi: 3.0.3
+       2 info:
+       3   title: Embedding Search & Management API
+       4   description: API for searching, adding, and updating embedding
+          entries in pgvector store
+       5   version: 1.0.0
+       6   contact:
+       7     name: DocIntel Team
+       8 
+       9 servers:
+      10   - url: http://localhost:8080
+     … +364 lines (ctrl+o to expand)
+
+● Now let me create the quickstart.md:
+
+● Write(specs/002-embedding-search/quickstart.md)
+  ⎿  Wrote 163 lines to specs/002-embedding-search/quickstart.md
+       1 # Quickstart: Embedding Search & Management
+       2 
+       3 **Branch**: `002-embedding-search` | **Date**: 2026-01-28
+       4 
+       5 ## Overview
+       6 
+       7 This feature adds a dedicated page for searching and managing em
+         bedding entries in the pgvector database. Users can:
+       8 
+       9 1. **Search**: Enter text queries to find similar content by sem
+         antic similarity
+      10 2. **Add**: Create new embedding entries from text (auto-generat
+         es vectors)
+     … +153 lines (ctrl+o to expand)
+
+● Now let me update the agent context:
+
+● Bash(.specify/scripts/bash/update-agent-context.sh claude 2>&1)
+  ⎿ INFO: === Updating agent context files for feature 002-embedding-search
+     ===
+    INFO: Parsing plan data from /home/matheus/code/DocIntel/specs/002-embe
+    … +20 lines (ctrl+o to expand)
+
+
+
+● Now let me verify all artifacts were created and commit the plan:
+
+● Read 2 files (ctrl+o to expand)
+
+● Bash(git add specs/002-embedding-search/ CLAUDE.md && git status)
+  ⎿  No ramo 002-embedding-search
+     Mudanças a serem submetidas:
+       (use "git restore --staged <file>..." to unstage)
+     … +7 lines (ctrl+o to expand)
+
+● Bash(git commit -m "Add implementation plan for embedding search feature…)
+  ⎿ [002-embedding-search acbcb24] Add implementation plan for embedding se
+    arch feature
+     6 files changed, 1013 insertions(+)
+    … +6 lines (ctrl+o to expand)
+
+
+● ✅ Planning Phase Complete
+
+  Summary
+
+  Branch: 002-embedding-search
+  Implementation Plan:
+  /home/matheus/code/DocIntel/specs/002-embedding-search/plan.md
+
+  Generated Artifacts
+  Artifact: plan.md
+  Path: specs/002-embedding-search/plan.md
+  Description: Technical context, constitution check, project structure
+  ────────────────────────────────────────
+  Artifact: research.md
+  Path: specs/002-embedding-search/research.md
+  Description: 8 research decisions on LangChain4j patterns
+  ────────────────────────────────────────
+  Artifact: data-model.md
+  Path: specs/002-embedding-search/data-model.md
+  Description: Entity schemas, validation rules, TypeScript types
+  ────────────────────────────────────────
+  Artifact: OpenAPI contract
+  Path: specs/002-embedding-search/contracts/embedding-search-api.yaml
+  Description: Full REST API spec (search, add, update, delete)
+  ────────────────────────────────────────
+  Artifact: quickstart.md
+  Path: specs/002-embedding-search/quickstart.md
+  Description: Usage examples, curl commands, troubleshooting
+  Key Technical Decisions
+
+  1. Search: Use LangChain4j EmbeddingStore.search() with builder pattern
+  2. Add: Use EmbeddingStore.add() with auto-generated embedding
+  3. Update: Delete + Add pattern (no native update in pgvector)
+  4. Entry Tracking: entry_id metadata field for stable identification
+  5. Frontend State: Custom hook with Fetch API (consistent with existing
+  patterns)
+
+  API Endpoints
+  ┌────────────────────────┬────────┬──────────────────────┐
+  │        Endpoint        │ Method │       Purpose        │
+  ├────────────────────────┼────────┼──────────────────────┤
+  │ /api/embeddings/search │ POST   │ Search by text query │
+  ├────────────────────────┼────────┼──────────────────────┤
+  │ /api/embeddings        │ POST   │ Add new entry        │
+  ├────────────────────────┼────────┼──────────────────────┤
+  │ /api/embeddings/{id}   │ GET    │ Get entry by ID      │
+  ├────────────────────────┼────────┼──────────────────────┤
+  │ /api/embeddings/{id}   │ PUT    │ Update entry         │
+  ├────────────────────────┼────────┼──────────────────────┤
+  │ /api/embeddings/{id}   │ DELETE │ Delete entry         │
+  └────────────────────────┴────────┴──────────────────────┘
+  Constitution Check
+
+  All 7 principles passed validation. Ready for TDD implementation.
+
+  Next Steps
+
+  Run /speckit.tasks to generate the task list for implementation, which will
+  use the TDD subagents:
+  - tdd-test-writer for RED phase
+  - tdd-implementer for GREEN phase
+  - tdd-refactorer for REFACTOR phase
+
+✻ Brewed for 5m 40s
+
+❯ /speckit.tasks 
+
+● I'll execute the task generation workflow for the embedding search feature.
+
+● Bash(.specify/scripts/bash/check-prerequisites.sh --json 2>&1)
+  ⎿ {
+      "FEATURE_DIR": "/home/matheus/code/DocIntel/specs/002-embedding-searc
+    h",
+    … +7 lines (ctrl+o to expand)
+
+
+● Read 5 files (ctrl+o to expand)
+
+● Now let me read the research.md for additional context:
+
+● Read 1 file (ctrl+o to expand)
+
+● Now I have all the context needed. Let me generate the comprehensive tasks.md:
+
+● Write(specs/002-embedding-search/tasks.md)
+  ⎿  Wrote 286 lines to specs/002-embedding-search/tasks.md
+       1 # Tasks: Embedding Search & Management
+       2 
+       3 **Input**: Design documents from `/specs/002-embedding-search/`
+       4 **Prerequisites**: plan.md, spec.md, data-model.md, contracts/em
+         bedding-search-api.yaml, research.md
+       5 
+       6 **Tests**: Constitution mandates TDD - tests are REQUIRED (TDD s
+         ubagents will be used)
+       7 
+       8 **Organization**: Tasks grouped by user story for independent im
+         plementation and testing.
+       9 
+      10 ## Format: `[ID] [P?] [Story] Description`
+     … +276 lines (ctrl+o to expand)
+
+● Now let me commit and provide the summary:
+
+● Bash(git add specs/002-embedding-search/tasks.md && git status)
+  ⎿  No ramo 002-embedding-search
+     Mudanças a serem submetidas:
+       (use "git restore --staged <file>..." to unstage)
+        new file:   specs/002-embedding-search/tasks.md
+
+● Bash(git commit -m "Add task list for embedding search feature
+      implementation…)
+  ⎿ [002-embedding-search 68f23f3] Add task list for embedding search featu
+    re implementation
+     1 file changed, 285 insertions(+)
+     create mode 100644 specs/002-embedding-search/tasks.md
+
+
+● ✅ Task Generation Complete
+
+  Summary
+
+  Output File: /home/matheus/code/DocIntel/specs/002-embedding-search/tasks.md
+
+  Task Count Summary
+  ┌─────────┬────────────────────────────────────┬────────────┐
+  │  Phase  │            Description             │ Task Count │
+  ├─────────┼────────────────────────────────────┼────────────┤
+  │ Phase 1 │ Setup (DTOs, Types)                │ 10         │
+  ├─────────┼────────────────────────────────────┼────────────┤
+  │ Phase 2 │ Foundational (Skeletons, Routing)  │ 6          │
+  ├─────────┼────────────────────────────────────┼────────────┤
+  │ Phase 3 │ User Story 1 - Search (P1) 🎯 MVP  │ 14         │
+  ├─────────┼────────────────────────────────────┼────────────┤
+  │ Phase 4 │ User Story 2 - Add Entries (P2)    │ 12         │
+  ├─────────┼────────────────────────────────────┼────────────┤
+  │ Phase 5 │ User Story 3 - Update Entries (P3) │ 16         │
+  ├─────────┼────────────────────────────────────┼────────────┤
+  │ Phase 6 │ Polish & Cross-Cutting             │ 7          │
+  ├─────────┼────────────────────────────────────┼────────────┤
+  │ Total   │                                    │ 65 tasks   │
+  └─────────┴────────────────────────────────────┴────────────┘
+  Tasks Per User Story
+  ┌──────────────┬───────┬────────────────┬──────────┬───────┐
+  │  User Story  │ Tests │ Implementation │ Refactor │ Total │
+  ├──────────────┼───────┼────────────────┼──────────┼───────┤
+  │ US1 (Search) │ 4     │ 9              │ 1        │ 14    │
+  ├──────────────┼───────┼────────────────┼──────────┼───────┤
+  │ US2 (Add)    │ 3     │ 8              │ 1        │ 12    │
+  ├──────────────┼───────┼────────────────┼──────────┼───────┤
+  │ US3 (Update) │ 5     │ 9              │ 1        │ 15    │
+  └──────────────┴───────┴────────────────┴──────────┴───────┘
+  Parallel Opportunities Identified
+
+  - Phase 1: 9 parallel DTO tasks (T001-T009)
+  - US1 Tests: 4 parallel test tasks (T017-T020)
+  - US1 Implementation: 2 parallel component tasks (T024-T025)
+  - US2 Tests: 3 parallel test tasks (T031-T033)
+  - US3 Tests: 5 parallel test tasks (T043-T047)
+  - Polish: 4 parallel tasks (T059-T062)
+
+  Independent Test Criteria
+  User Story: US1 (Search)
+  Independent Test: Submit any text query → receive ranked results with
+    similarity scores and metadata
+  ────────────────────────────────────────
+  User Story: US2 (Add)
+  Independent Test: Add text via form → verify it appears in subsequent searches
+  ────────────────────────────────────────
+  User Story: US3 (Update)
+  Independent Test: Click edit on search result → modify text → verify changes
+  in
+     subsequent search
+  Format Validation ✅
+
+  All 65 tasks follow the required checklist format:
+  - ✅ Checkbox (- [ ])
+  - ✅ Task ID (T001-T065)
+  - ✅ [P] marker for parallelizable tasks
+  - ✅ [Story] label for user story tasks (US1, US2, US3)
+  - ✅ Exact file paths in descriptions
+
+  Suggested MVP Scope
+
+  User Story 1 only (Phases 1-3):
+  - 10 setup tasks + 6 foundational tasks + 14 US1 tasks = 30 tasks
+  - Delivers: Search embeddings by text query with ranked results
+  - Independently testable and deployable
+
+  Next Steps
+
+  To implement the feature, use the TDD subagents as specified:
+
+  Task(subagent_type="tdd-test-writer", prompt="...")   # RED phase
+  Task(subagent_type="tdd-implementer", prompt="...")   # GREEN phase
+  Task(subagent_type="tdd-refactorer", prompt="...")    # REFACTOR phase
+
+  Start with Phase 1 (Setup) tasks which can all run in parallel.
+
+✻ Cogitated for 1m 56s
