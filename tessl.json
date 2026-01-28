@@ -1,10 +1,9 @@
 {
   "name": "docintel",
-  "description": "Intelligent Document Assistant - Chat with your documents using AI with RAG and semantic reranking",
   "version": "1.0.0",
-  "dependencies": {},
-  "technologies": {
-    "backend": ["Java 21", "Quarkus 3.30", "PostgreSQL", "pgvector", "OpenAI GPT-4o"],
-    "frontend": ["React 19", "Vite", "TailwindCSS"]
+  "dependencies": {
+    "tessl/maven-io-quarkiverse-langchain4j--quarkus-langchain4j-core": {
+      "version": "1.5.0"
+    }
   }
 }
