@@ -1,0 +1,373 @@
+openapi: 3.0.3
+info:
+  title: Embedding Search & Management API
+  description: API for searching, adding, and updating embedding entries in pgvector store
+  version: 1.0.0
+  contact:
+    name: DocIntel Team
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+paths:
+  /api/embeddings/search:
+    post:
+      summary: Search embeddings by text query
+      description: |
+        Converts query text to embedding vector and searches pgvector store
+        for similar entries. Results sorted by similarity score descending.
+      operationId: searchEmbeddings
+      tags:
+        - Embedding Search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchQuery'
+            example:
+              query: "How do I configure authentication?"
+              maxResults: 10
+              minSimilarity: 0.7
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          description: Invalid request (empty query, invalid parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error (embedding generation failed, database error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/embeddings:
+    post:
+      summary: Add new embedding entry
+      description: |
+        Creates a new embedding entry from provided text. Generates embedding
+        vector automatically using text-embedding-3-small model.
+      operationId: addEmbedding
+      tags:
+        - Embedding Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddEntryRequest'
+            example:
+              text: "This is important reference content about API design patterns."
+              fileName: "api-reference"
+              customMetadata:
+                category: "documentation"
+                version: "1.0"
+      responses:
+        '201':
+          description: Entry created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddEntryResponse'
+        '400':
+          description: Invalid request (empty text, invalid metadata)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error (embedding generation failed, storage error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/embeddings/{entryId}:
+    get:
+      summary: Get embedding entry by ID
+      description: Retrieves a single embedding entry by its entry_id metadata value
+      operationId: getEmbedding
+      tags:
+        - Embedding Management
+      parameters:
+        - name: entryId
+          in: path
+          required: true
+          description: UUID of the entry to retrieve
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Entry found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingEntry'
+        '404':
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update embedding entry
+      description: |
+        Updates an existing embedding entry. If text is changed, a new embedding
+        vector is generated. Metadata updates are merged with existing values.
+      operationId: updateEmbedding
+      tags:
+        - Embedding Management
+      parameters:
+        - name: entryId
+          in: path
+          required: true
+          description: UUID of the entry to update
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEntryRequest'
+            example:
+              text: "Updated content with better explanation of patterns."
+              customMetadata:
+                version: "1.1"
+      responses:
+        '200':
+          description: Entry updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateEntryResponse'
+        '400':
+          description: Invalid request (no fields to update, invalid metadata)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error (re-embedding failed, storage error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete embedding entry
+      description: Permanently removes an embedding entry from the store
+      operationId: deleteEmbedding
+      tags:
+        - Embedding Management
+      parameters:
+        - name: entryId
+          in: path
+          required: true
+          description: UUID of the entry to delete
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Entry deleted successfully
+        '404':
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    SearchQuery:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: Text to search for (will be converted to embedding)
+        maxResults:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+          description: Maximum number of results to return
+        minSimilarity:
+          type: number
+          format: double
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.7
+          description: Minimum similarity score threshold
+
+    SearchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmbeddingEntry'
+        totalFound:
+          type: integer
+          description: Total number of results found (before maxResults limit)
+        queryTime:
+          type: integer
+          description: Query execution time in milliseconds
+
+    EmbeddingEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier from pgvector store
+        text:
+          type: string
+          description: Original text content that was embedded
+        similarity:
+          type: number
+          format: double
+          minimum: 0.0
+          maximum: 1.0
+          description: Cosine similarity score (only present in search results)
+        metadata:
+          $ref: '#/components/schemas/EntryMetadata'
+
+    EntryMetadata:
+      type: object
+      properties:
+        FILE_NAME:
+          type: string
+          description: Source document or custom identifier
+        entry_id:
+          type: string
+          format: uuid
+          description: Stable ID for update/delete operations (manual entries only)
+        source:
+          type: string
+          enum:
+            - manual
+            - ingestion
+          description: Origin of the entry
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp (manual entries only)
+        PARAGRAPH:
+          type: string
+          description: Original chunk context (ingested docs only)
+      additionalProperties:
+        type: string
+        description: User-defined custom metadata fields
+
+    AddEntryRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: Text content to embed
+        fileName:
+          type: string
+          pattern: '^[a-zA-Z0-9_-]+$'
+          default: manual-entry
+          description: Source identifier for filtering
+        customMetadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: User-defined metadata key-value pairs
+
+    AddEntryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID of the created entry
+        success:
+          type: boolean
+          description: Whether the operation succeeded
+
+    UpdateEntryRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: New text content (triggers re-embedding if changed)
+        fileName:
+          type: string
+          pattern: '^[a-zA-Z0-9_-]+$'
+          description: Updated source identifier
+        customMetadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: Metadata to merge with existing values
+
+    UpdateEntryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID of the updated entry
+        success:
+          type: boolean
+          description: Whether the operation succeeded
+        reembedded:
+          type: boolean
+          description: Whether the text was changed and re-embedded
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type or code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error context

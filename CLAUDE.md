@@ -86,6 +86,7 @@ Use the provided export script:
 ## Active Technologies
 - Java 21+ (existing Quarkus 3.30.4 application) (001-docling-ingestion)
 - PostgreSQL 14+ with pgvector extension (existing) (001-docling-ingestion)
+- Java 21+ (Backend), TypeScript (Frontend) + Quarkus 3.30+, LangChain4j, React 19, Vite 7.2 (002-embedding-search)
 
 ## Recent Changes
 - 001-docling-ingestion: Added Java 21+ (existing Quarkus 3.30.4 application)
