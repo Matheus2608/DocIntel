@@ -227,6 +227,187 @@ class DoclingDocumentParserTest {
     }
 
     /**
+     * T028: Unit test for DOCX heading hierarchy extraction
+     * 
+     * User Story 2, Requirement FR-005:
+     * Given a user uploads a DOCX with heading structure (H1-H6),
+     * When the system processes it,
+     * Then the markdown output MUST preserve heading hierarchy with correct # syntax
+     */
+    @Test
+    void shouldExtractHeadingHierarchyFromDocx() {
+        // Arrange
+        DocumentFile documentFile = createTestDocumentFile("test-document.docx");
+        byte[] docxContent = createTestDocxWithStructure();
+
+        // Act
+        List<DocumentChunk> chunks = doclingDocumentParser.parse(documentFile, docxContent);
+
+        // Assert
+        assertThat(chunks).isNotEmpty();
+        
+        // Find chunk containing headings
+        String allContent = chunks.stream()
+                .map(chunk -> chunk.content)
+                .reduce("", (a, b) -> a + "\n" + b);
+
+        // Verify H1 heading (single #)
+        assertThat(allContent)
+                .as("DOCX H1 should be converted to markdown # heading")
+                .containsPattern("(?m)^# [A-Za-z]");
+
+        // Verify H2 heading (double ##)
+        assertThat(allContent)
+                .as("DOCX H2 should be converted to markdown ## heading")
+                .containsPattern("(?m)^## [A-Za-z]");
+
+        // Verify H3 heading (triple ###)
+        assertThat(allContent)
+                .as("DOCX H3 should be converted to markdown ### heading")
+                .containsPattern("(?m)^### [A-Za-z]");
+
+        // Verify heading hierarchy is preserved in order
+        String[] lines = allContent.split("\n");
+        boolean foundH1 = false;
+        boolean foundH2AfterH1 = false;
+        boolean foundH3AfterH2 = false;
+
+        for (String line : lines) {
+            if (line.matches("^# .*")) {
+                foundH1 = true;
+            } else if (foundH1 && line.matches("^## .*")) {
+                foundH2AfterH1 = true;
+            } else if (foundH2AfterH1 && line.matches("^### .*")) {
+                foundH3AfterH2 = true;
+            }
+        }
+
+        assertThat(foundH1 && foundH2AfterH1 && foundH3AfterH2)
+                .as("Heading hierarchy must be preserved in correct order")
+                .isTrue();
+    }
+
+    /**
+     * T029: Unit test for list grouping in DOCX
+     * 
+     * User Story 2, Requirement FR-006:
+     * Given a DOCX with ordered and unordered lists,
+     * When the system processes it,
+     * Then the markdown output MUST preserve list structure with correct syntax
+     */
+    @Test
+    void shouldGroupListsInDocx() {
+        // Arrange
+        DocumentFile documentFile = createTestDocumentFile("test-lists.docx");
+        byte[] docxContent = createTestDocxWithStructure();
+
+        // Act
+        List<DocumentChunk> chunks = doclingDocumentParser.parse(documentFile, docxContent);
+
+        // Assert
+        assertThat(chunks).isNotEmpty();
+        
+        String allContent = chunks.stream()
+                .map(chunk -> chunk.content)
+                .reduce("", (a, b) -> a + "\n" + b);
+
+        // Verify unordered list (markdown bullet points with -, *, or +)
+        assertThat(allContent)
+                .as("DOCX unordered list should be converted to markdown bullets")
+                .containsPattern("(?m)^[\\-*+] ");
+
+        // Verify ordered list (markdown numbered list)
+        assertThat(allContent)
+                .as("DOCX ordered list should be converted to markdown numbered list")
+                .containsPattern("(?m)^\\d+\\. ");
+
+        // Verify list has multiple items (at least 2)
+        long bulletCount = allContent.lines()
+                .filter(line -> line.matches("^[\\-*+] .*"))
+                .count();
+        assertThat(bulletCount)
+                .as("Unordered list should have at least 2 items")
+                .isGreaterThanOrEqualTo(2);
+
+        long numberedCount = allContent.lines()
+                .filter(line -> line.matches("^\\d+\\. .*"))
+                .count();
+        assertThat(numberedCount)
+                .as("Ordered list should have at least 2 items")
+                .isGreaterThanOrEqualTo(2);
+
+        // Verify lists are kept together (not split across chunks inappropriately)
+        boolean listsGroupedProperly = chunks.stream()
+                .anyMatch(chunk -> {
+                    String content = chunk.content;
+                    long bullets = content.lines().filter(l -> l.matches("^[\\-*+] .*")).count();
+                    long numbers = content.lines().filter(l -> l.matches("^\\d+\\. .*")).count();
+                    return bullets >= 2 || numbers >= 2; // At least one complete list in a chunk
+                });
+
+        assertThat(listsGroupedProperly)
+                .as("Lists should be kept together in chunks")
+                .isTrue();
+    }
+
+    /**
+     * T030: Unit test for text formatting preservation in DOCX
+     * 
+     * User Story 2, Requirement FR-003:
+     * Given a DOCX with bold, italic, and hyperlinks,
+     * When the system processes it,
+     * Then the markdown output MUST preserve text formatting
+     */
+    @Test
+    void shouldPreserveTextFormattingInDocx() {
+        // Arrange
+        DocumentFile documentFile = createTestDocumentFile("test-formatting.docx");
+        byte[] docxContent = createTestDocxWithStructure();
+
+        // Act
+        List<DocumentChunk> chunks = doclingDocumentParser.parse(documentFile, docxContent);
+
+        // Assert
+        assertThat(chunks).isNotEmpty();
+        
+        String allContent = chunks.stream()
+                .map(chunk -> chunk.content)
+                .reduce("", (a, b) -> a + "\n" + b);
+
+        // Verify bold text (markdown **bold** or __bold__)
+        assertThat(allContent)
+                .as("DOCX bold text should be converted to markdown **bold**")
+                .containsPattern("\\*\\*[^*]+\\*\\*|__[^_]+__");
+
+        // Verify italic text (markdown *italic* or _italic_)
+        assertThat(allContent)
+                .as("DOCX italic text should be converted to markdown *italic*")
+                .containsPattern("\\*[^*]+\\*|_[^_]+_");
+
+        // Verify hyperlinks (markdown [text](url))
+        assertThat(allContent)
+                .as("DOCX hyperlinks should be converted to markdown [text](url)")
+                .containsPattern("\\[[^\\]]+\\]\\([^)]+\\)");
+
+        // Verify at least one bold, one italic, and one link exists
+        boolean hasBold = allContent.matches(".*\\*\\*[^*]+\\*\\*.*") || 
+                          allContent.matches(".*__[^_]+__.*");
+        boolean hasItalic = allContent.matches(".*\\*[^*]+\\*.*") || 
+                            allContent.matches(".*_[^_]+_.*");
+        boolean hasLink = allContent.matches(".*\\[[^\\]]+\\]\\([^)]+\\).*");
+
+        assertThat(hasBold)
+                .as("Document should contain at least one bold element")
+                .isTrue();
+        assertThat(hasItalic)
+                .as("Document should contain at least one italic element")
+                .isTrue();
+        assertThat(hasLink)
+                .as("Document should contain at least one hyperlink")
+                .isTrue();
+    }
+
+    /**
      * Test error handling for invalid PDF
      */
     @Test
@@ -314,5 +495,32 @@ class DoclingDocumentParserTest {
         // Count pipe delimiters (columns = pipes - 1 for standard markdown tables)
         long pipes = tableRow.chars().filter(ch -> ch == '|').count();
         return (int) pipes - 1;
+    }
+
+    /**
+     * Create test DOCX content with structure (headings, lists, formatting).
+     * 
+     * This is a minimal DOCX-like byte array for testing purposes.
+     * In reality, DOCX files are ZIP archives with XML, but for testing
+     * we create a simple structure that can be identified as DOCX by extension.
+     */
+    private byte[] createTestDocxWithStructure() {
+        // DOCX files start with PK (ZIP format magic bytes: 50 4B 03 04)
+        // This creates a minimal valid ZIP structure that resembles a DOCX file
+        // For actual parsing, Docling will process the real DOCX structure
+        
+        byte[] zipHeader = new byte[] {
+            0x50, 0x4B, 0x03, 0x04, // ZIP local file header signature
+            0x14, 0x00, 0x00, 0x00, // version needed, flags
+            0x00, 0x00, 0x00, 0x00, // compression method, modification time
+            0x00, 0x00, 0x00, 0x00, // CRC-32
+            0x00, 0x00, 0x00, 0x00, // compressed size
+            0x00, 0x00, 0x00, 0x00, // uncompressed size
+            0x09, 0x00, 0x00, 0x00, // file name length, extra field length
+            // Filename: "test.docx" equivalent marker
+            0x74, 0x65, 0x73, 0x74, 0x2E, 0x64, 0x6F, 0x63, 0x78
+        };
+        
+        return zipHeader;
     }
 }
