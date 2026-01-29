@@ -2,6 +2,7 @@ package dev.matheus.service.docling;
 
 import ai.docling.testcontainers.serve.DoclingServeContainer;
 import ai.docling.testcontainers.serve.config.DoclingServeContainerConfig;
+import com.github.dockerjava.api.model.HostConfig;
 import dev.matheus.entity.ContentType;
 import dev.matheus.entity.DocumentChunk;
 import dev.matheus.entity.DocumentFile;
@@ -10,6 +11,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -27,13 +30,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  * T019: Integration test for PDF processing with real Docling Serve container
  * 
  * Tests the full integration:
- * - Docling Serve container running
+ * - Docling Serve container running with increased resources (4GB memory, 2 CPUs)
  * - DoclingDocumentParser calling Docling API
  * - PDF with tables processed end-to-end
  * - Markdown table output validated
+ * - Tests run sequentially to prevent container overload
  */
 @QuarkusTest
 @Testcontainers // Re-enabled for REFACTOR phase - real Docling integration
+@Execution(ExecutionMode.SAME_THREAD) // Option 3: Run tests sequentially to prevent container overload
 class DoclingIntegrationTest {
 
     @Container // Re-enabled for REFACTOR phase
@@ -41,7 +46,19 @@ class DoclingIntegrationTest {
             DoclingServeContainerConfig.builder()
                     .image("ghcr.io/docling-project/docling-serve:v1.9.0")
                     .build()
-    );
+    )
+    // Option 2: Increase container resources for better stability
+    .withCreateContainerCmdModifier(cmd -> {
+        HostConfig hostConfig = cmd.getHostConfig();
+        if (hostConfig == null) {
+            hostConfig = new HostConfig();
+            cmd.withHostConfig(hostConfig);
+        }
+        hostConfig
+            .withMemory(4L * 1024 * 1024 * 1024) // 4GB memory
+            .withMemorySwap(4L * 1024 * 1024 * 1024) // 4GB swap
+            .withCpuCount(2L); // 2 CPUs
+    });
 
     @Inject
     DoclingDocumentParser doclingDocumentParser;
