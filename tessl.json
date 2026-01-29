@@ -4,6 +4,24 @@
   "dependencies": {
     "tessl/maven-io-quarkiverse-langchain4j--quarkus-langchain4j-core": {
       "version": "1.5.0"
+    },
+    "tessl/maven-io-quarkus--quarkus-rest": {
+      "version": "3.15.0"
+    },
+    "tessl/maven-io-quarkus--quarkus-hibernate-orm-panache": {
+      "version": "3.23.0"
+    },
+    "tessl/npm-react": {
+      "version": "19.2.0"
+    },
+    "tessl/npm-vite": {
+      "version": "7.3.0"
+    },
+    "tessl/npm-axios": {
+      "version": "1.11.0"
+    },
+    "tessl/npm-tailwindcss": {
+      "version": "4.1.1"
     }
   }
 }
