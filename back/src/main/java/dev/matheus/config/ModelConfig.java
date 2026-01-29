@@ -35,6 +35,7 @@ public class ModelConfig {
 
     @Produces
     @ApplicationScoped
+    @Named("embeddingModel")
     public EmbeddingModel defaultEmbeddingModel() {
         return OpenAiEmbeddingModel.builder()
                 .apiKey(openaiApiKey)
