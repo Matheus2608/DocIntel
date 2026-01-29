@@ -1,5 +1,13 @@
 package dev.matheus.service.docling;
 
+import ai.docling.serve.api.DoclingServeApi;
+import ai.docling.serve.api.convert.request.ConvertDocumentRequest;
+import ai.docling.serve.api.convert.request.options.ConvertDocumentOptions;
+import ai.docling.serve.api.convert.request.options.OutputFormat;
+import ai.docling.serve.api.convert.request.options.TableFormerMode;
+import ai.docling.serve.api.convert.request.source.FileSource;
+import ai.docling.serve.api.convert.request.target.InBodyTarget;
+import ai.docling.serve.api.convert.response.ConvertDocumentResponse;
 import dev.matheus.entity.DocumentChunk;
 import dev.matheus.entity.DocumentFile;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -7,6 +15,7 @@ import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -18,6 +27,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class DoclingDocumentParser {
 
     private static final Logger LOG = Logger.getLogger(DoclingDocumentParser.class);
+
+    @Inject
+    DoclingServeApi doclingServeApi;
 
     @Inject
     DoclingConfigProperties config;
@@ -54,10 +66,10 @@ public class DoclingDocumentParser {
         }
 
         try {
-            // Generate mock markdown content with tables for testing
-            String markdownContent = generateMockMarkdownWithTables(documentFile.fileName);
+            // Call Docling Serve API to convert PDF to markdown
+            String markdownContent = callDoclingApi(pdfContent, documentFile.fileName);
 
-            // Extract chunks from content
+            // Extract chunks from markdown content
             List<DocumentChunk> chunks = extractChunks(markdownContent, documentFile);
 
             LOG.infof("Successfully parsed document %s into %d chunks", documentFile.fileName, chunks.size());
@@ -70,78 +82,51 @@ public class DoclingDocumentParser {
     }
 
     /**
-     * Generate mock markdown content with tables for testing purposes.
-     * In real implementation, this would call Docling Serve API.
+     * Call Docling Serve API to convert document to markdown.
      */
-    private String generateMockMarkdownWithTables(String fileName) {
-        if (fileName.contains("multipage")) {
-            return generateMultiPageTable();
-        } else if (fileName.contains("simple")) {
-            return generateSimpleTable();
-        } else if (fileName.contains("text-with-tables")) {
-            return generateTextWithTables();
-        } else {
-            return generateDefaultTable();
+    private String callDoclingApi(byte[] pdfContent, String fileName) {
+        LOG.infof("Calling Docling Serve API for file: %s", fileName);
+
+        // Encode PDF content to Base64 (required by FileSource)
+        String base64Content = Base64.getEncoder().encodeToString(pdfContent);
+
+        ConvertDocumentRequest request = ConvertDocumentRequest.builder()
+                .source(FileSource.builder()
+                        .base64String(base64Content)
+                        .filename(fileName)
+                        .build())
+                .options(ConvertDocumentOptions.builder()
+                        .toFormat(OutputFormat.MARKDOWN)
+                        .tableMode(TableFormerMode.ACCURATE) // Use accurate table extraction
+                        .includeImages(false) // Skip images for now (focus on text/tables)
+                        .abortOnError(false) // Continue on partial errors
+                        .build())
+                .target(InBodyTarget.builder().build()) // Get results in HTTP response body
+                .build();
+
+        try {
+            ConvertDocumentResponse response = doclingServeApi.convertSource(request);
+            
+            if (response == null || response.getDocument() == null) {
+                throw new RuntimeException("Docling API returned null response");
+            }
+
+            String markdown = response.getDocument().getMarkdownContent();
+            
+            if (markdown == null || markdown.isEmpty()) {
+                LOG.warnf("Docling API returned empty markdown for: %s", fileName);
+                return "";
+            }
+
+            LOG.infof("Docling API successfully converted %s to %d characters of markdown", 
+                      fileName, markdown.length());
+            
+            return markdown;
+
+        } catch (Exception e) {
+            LOG.errorf(e, "Docling API call failed for: %s", fileName);
+            throw new RuntimeException("Docling API conversion failed: " + e.getMessage(), e);
         }
-    }
-
-    private String generateDefaultTable() {
-        return """
-                # Document Title
-                
-                This is some introductory text before the table.
-                
-                | Product | Price | Quantity |
-                |---------|-------|----------|
-                | Widget A | $10.00 | 100 |
-                | Widget B | $15.00 | 50 |
-                | Widget C | $20.00 | 75 |
-                
-                This is some text after the table.
-                """;
-    }
-
-    private String generateSimpleTable() {
-        return """
-                | Item | Value |
-                |------|-------|
-                | Name | Test |
-                | Count | 5 |
-                """;
-    }
-
-    private String generateMultiPageTable() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("| Column 1 | Column 2 | Column 3 | Column 4 |\n");
-        sb.append("|----------|----------|----------|----------|\n");
-        
-        // Generate many rows to simulate multi-page table
-        for (int i = 1; i <= 25; i++) {
-            sb.append(String.format("| Row %d-A | Row %d-B | Row %d-C | Row %d-D |\n", i, i, i, i));
-        }
-        
-        return sb.toString();
-    }
-
-    private String generateTextWithTables() {
-        return """
-                # Introduction
-                
-                This document contains both regular text and structured data in tables.
-                
-                ## Pricing Information
-                
-                The following table shows our current pricing:
-                
-                | Product | Price |
-                |---------|-------|
-                | Basic | $10 |
-                | Pro | $20 |
-                
-                ## Additional Information
-                
-                More context about the table above.
-                """;
     }
 
     /**

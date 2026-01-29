@@ -22,8 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Integration test for DoclingDocumentParser with Testcontainers - User Story 1: PDF Table Extraction
  * 
- * TDD GREEN Phase: Tests pass with minimal implementation (using mocks).
- * TDD REFACTOR Phase: Will integrate real Docling Serve container.
+ * TDD REFACTOR Phase: Tests now use real Docling Serve container via Testcontainers.
  * 
  * T019: Integration test for PDF processing with real Docling Serve container
  * 
@@ -32,35 +31,31 @@ import static org.assertj.core.api.Assertions.assertThat;
  * - DoclingDocumentParser calling Docling API
  * - PDF with tables processed end-to-end
  * - Markdown table output validated
- * 
- * Note: @Testcontainers temporarily disabled for GREEN phase - will be enabled in REFACTOR phase
  */
 @QuarkusTest
-//@Testcontainers // Disabled for GREEN phase - minimal implementation uses mocks
+@Testcontainers // Re-enabled for REFACTOR phase - real Docling integration
 class DoclingIntegrationTest {
 
-    //@Container // Disabled for GREEN phase
-    static DoclingServeContainer doclingServeContainer = null;
+    @Container // Re-enabled for REFACTOR phase
+    static DoclingServeContainer doclingServeContainer = new DoclingServeContainer(
+            DoclingServeContainerConfig.builder().build()
+    );
 
     @Inject
     DoclingDocumentParser doclingDocumentParser;
 
     @BeforeAll
     static void setUp() {
-        // GREEN phase: Using minimal mock implementation
-        // REFACTOR phase: Will start actual Docling Serve container
-        /*
+        // REFACTOR phase: Start actual Docling Serve container
+        // Container is started automatically by @Testcontainers annotation
         // Wait for container to be ready
-        doclingServeContainer.start();
-        
-        // Configure Quarkus to use the container's URL
-        String doclingUrl = String.format("http://%s:%d",
-                doclingServeContainer.getHost(),
-                doclingServeContainer.getMappedPort(5000));
-        
-        System.setProperty("quarkus.rest-client.docling-api.url", doclingUrl);
-        System.setProperty("docling.serve.url", doclingUrl);
-        */
+        if (doclingServeContainer != null && doclingServeContainer.isRunning()) {
+            // Configure Quarkus to use the container's URL
+            String doclingUrl = doclingServeContainer.getApiUrl();
+            
+            System.setProperty("quarkus.rest-client.docling-api.url", doclingUrl);
+            System.setProperty("docling.serve.url", doclingUrl);
+        }
     }
 
     /**
