@@ -2,14 +2,22 @@ package dev.matheus.service;
 
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
+import dev.matheus.entity.DocumentChunk;
+import dev.matheus.entity.DocumentFile;
+import dev.matheus.entity.ProcessingStatus;
+import dev.matheus.service.docling.DoclingDocumentParser;
 import dev.matheus.service.pdf.PdfTableExtractor;
 import dev.matheus.service.pdf.PdfTextExtractor;
 import dev.matheus.service.pdf.TextNormalizer;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Service responsible for ingesting and parsing documents, especially PDFs.
@@ -18,9 +26,82 @@ import java.io.IOException;
 public class DocumentIngestionService {
 
     private static final Logger Log = Logger.getLogger(DocumentIngestionService.class);
+    
+    @Inject
+    DoclingDocumentParser doclingParser;
+
+    /**
+     * Process document using Docling and persist chunks
+     */
+    @Transactional
+    public void processDocument(DocumentFile doc) {
+        Log.infof("Starting document processing - docId=%s, fileName=%s", doc.id, doc.fileName);
+        try {
+            // Transition to PROCESSING
+            startProcessing(doc);
+            
+            // Parse with Docling
+            Log.debugf("Parsing document with Docling - docId=%s", doc.id);
+            List<DocumentChunk> chunks = doclingParser.parse(doc, doc.fileData);
+            Log.infof("Docling parsing complete - docId=%s, chunks=%d", doc.id, chunks.size());
+            
+            // Persist chunks
+            for (DocumentChunk chunk : chunks) {
+                chunk.persist();
+            }
+            
+            // Complete processing
+            completeProcessing(doc, chunks);
+            Log.infof("Document processing completed successfully - docId=%s, chunks=%d", doc.id, chunks.size());
+            
+        } catch (Exception e) {
+            Log.errorf(e, "Document processing failed - docId=%s, error=%s", doc.id, e.getMessage());
+            markAsFailed(doc, e.getMessage());
+            throw new RuntimeException("Document processing failed", e);
+        }
+    }
+
+    /**
+     * Transition document to PROCESSING status
+     */
+    @Transactional
+    public void startProcessing(DocumentFile doc) {
+        doc.processingStatus = ProcessingStatus.PROCESSING;
+        doc.persist();
+    }
+
+    /**
+     * Mark document as COMPLETED
+     */
+    @Transactional
+    public void completeProcessing(DocumentFile doc, List<DocumentChunk> chunks) {
+        doc.processingStatus = ProcessingStatus.COMPLETED;
+        doc.processedAt = LocalDateTime.now();
+        doc.chunkCount = chunks.size();
+        doc.processorVersion = "docling-serve-v1.9.0";
+        doc.persist();
+    }
+
+    /**
+     * Mark document as FAILED with error message
+     */
+    @Transactional
+    public void markAsFailed(DocumentFile doc, String errorMessage) {
+        doc.processingStatus = ProcessingStatus.FAILED;
+        doc.processingError = errorMessage;
+        doc.processedAt = LocalDateTime.now();
+        doc.persist();
+    }
+
     /**
      * Parses a PDF document, extracts clean text and tables in Markdown format.
+     * 
+     * @deprecated Use {@link #processDocument(DocumentFile)} instead for Docling-based processing.
+     *             This method uses legacy PDFBox/Tabula extraction and will be removed in a future version.
+     *             Migration: Replace parseCustomPdf() calls with processDocument() to benefit from
+     *             Docling's superior table extraction and semantic chunking.
      */
+    @Deprecated(since = "Phase 9", forRemoval = true)
     public Document parseCustomPdf(byte[] pdfBytes, String filename) throws IOException {
         long startTime = System.currentTimeMillis();
         Log.infof("Starting PDF parsing - filename=%s, size=%d bytes", filename, pdfBytes.length);
