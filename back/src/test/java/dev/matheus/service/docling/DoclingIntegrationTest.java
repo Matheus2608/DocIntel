@@ -285,18 +285,29 @@ class DoclingIntegrationTest {
     }
 
     private byte[] loadRealPdfWithTable() {
-        // Try to load real test fixture
+        // Try to load real PDF with tables, preferring smaller fixture for faster tests
         try {
+            // First try the smallest fixture (2.5MB, 2 pages with tables)
+            Path smallFixturePath = Path.of("src/test/resources/fixtures/test-pdf-with-tables-small.pdf");
+            if (Files.exists(smallFixturePath)) {
+                return Files.readAllBytes(smallFixturePath);
+            }
+            
+            // Second try the medium fixture (3.9MB, 5 pages with tables)
             Path fixturePath = Path.of("src/test/resources/fixtures/test-pdf-with-tables.pdf");
             if (Files.exists(fixturePath)) {
                 return Files.readAllBytes(fixturePath);
             }
             
-            // Fallback to placeholder
+            // Fallback to full PDF (91MB - use only for stress tests)
+            Path realPdfPath = Path.of("src/test/resources/files/GuiaDoAtleta2025.pdf");
+            if (Files.exists(realPdfPath)) {
+                return Files.readAllBytes(realPdfPath);
+            }
+            
+            // Last resort: placeholder
             Path placeholderPath = Path.of("src/test/resources/fixtures/test-pdf-with-tables.pdf.placeholder");
             if (Files.exists(placeholderPath)) {
-                // For integration test, we need a real PDF
-                // If no real PDF available, create a minimal valid one
                 return createMinimalValidPdfWithTable();
             }
         } catch (Exception e) {
