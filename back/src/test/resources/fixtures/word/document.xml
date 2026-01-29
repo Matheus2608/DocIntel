@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:pPr>
+        <w:outlineLvl w:val="0"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr><w:b/><w:sz w:val="48"/></w:rPr>
+        <w:t>Main Title</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r><w:t>Introduction paragraph with content.</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:outlineLvl w:val="1"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr><w:b/><w:sz w:val="36"/></w:rPr>
+        <w:t>Section 1</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r><w:t>Section content here.</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:outlineLvl w:val="2"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr><w:b/><w:sz w:val="28"/></w:rPr>
+        <w:t>Subsection 1.1</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r><w:t>Subsection content.</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:r><w:t>Unordered list:</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:numPr>
+          <w:ilvl w:val="0"/>
+          <w:numId w:val="1"/>
+        </w:numPr>
+      </w:pPr>
+      <w:r><w:t>First bullet item</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:numPr>
+          <w:ilvl w:val="0"/>
+          <w:numId w:val="1"/>
+        </w:numPr>
+      </w:pPr>
+      <w:r><w:t>Second bullet item</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:numPr>
+          <w:ilvl w:val="0"/>
+          <w:numId w:val="1"/>
+        </w:numPr>
+      </w:pPr>
+      <w:r><w:t>Third bullet item</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:r><w:t>Ordered list:</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:numPr>
+          <w:ilvl w:val="0"/>
+          <w:numId w:val="2"/>
+        </w:numPr>
+      </w:pPr>
+      <w:r><w:t>First numbered item</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:numPr>
+          <w:ilvl w:val="0"/>
+          <w:numId w:val="2"/>
+        </w:numPr>
+      </w:pPr>
+      <w:r><w:t>Second numbered item</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:numPr>
+          <w:ilvl w:val="0"/>
+          <w:numId w:val="2"/>
+        </w:numPr>
+      </w:pPr>
+      <w:r><w:t>Third numbered item</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:rPr><w:b/></w:rPr>
+        <w:t>Bold text</w:t>
+      </w:r>
+      <w:r><w:t> and </w:t></w:r>
+      <w:r>
+        <w:rPr><w:i/></w:rPr>
+        <w:t>italic text</w:t>
+      </w:r>
+      <w:r><w:t> with </w:t></w:r>
+      <w:hyperlink w:id="rId1">
+        <w:r>
+          <w:rPr><w:u w:val="single"/><w:color w:val="0000FF"/></w:rPr>
+          <w:t>a link</w:t>
+        </w:r>
+      </w:hyperlink>
+    </w:p>
+  </w:body>
+</w:document>

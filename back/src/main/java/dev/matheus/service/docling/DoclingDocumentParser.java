@@ -41,33 +41,28 @@ public class DoclingDocumentParser {
      * Parse a document and extract chunks with structured content.
      *
      * @param documentFile The document file entity
-     * @param pdfContent   The PDF content as byte array
+     * @param documentContent   The document content as byte array (PDF, DOCX, DOC)
      * @return List of document chunks with extracted content
      * @throws RuntimeException if parsing fails
      */
-    public List<DocumentChunk> parse(DocumentFile documentFile, byte[] pdfContent) {
+    public List<DocumentChunk> parse(DocumentFile documentFile, byte[] documentContent) {
         LOG.infof("Parsing document: %s", documentFile.fileName);
 
-        if (pdfContent == null || pdfContent.length == 0) {
-            LOG.warn("Empty or null PDF content provided");
+        if (documentContent == null || documentContent.length == 0) {
+            LOG.warn("Empty or null document content provided");
             return List.of();
         }
 
-        // Check if this is actually a valid PDF
-        String content = new String(pdfContent);
-        if (!content.startsWith("%PDF")) {
-            throw new RuntimeException("Invalid PDF format");
-        }
-        
-        // Check for empty PDF (minimal PDF with no content)
-        if (content.trim().equals("%PDF-1.4\n%%EOF") || content.trim().length() < 50) {
-            // Empty PDF - return empty list
+        // Check for minimal/empty documents that Docling cannot process
+        String contentStr = new String(documentContent);
+        if (contentStr.trim().length() < 50 || contentStr.trim().equals("%PDF-1.4\n%%EOF")) {
+            LOG.warnf("Document %s appears to be empty or minimal, skipping", documentFile.fileName);
             return List.of();
         }
 
         try {
-            // Call Docling Serve API to convert PDF to markdown
-            String markdownContent = callDoclingApi(pdfContent, documentFile.fileName);
+            // Call Docling Serve API to convert document to markdown
+            String markdownContent = callDoclingApi(documentContent, documentFile.fileName);
 
             // Extract chunks from markdown content
             List<DocumentChunk> chunks = extractChunks(markdownContent, documentFile);
@@ -77,18 +72,18 @@ public class DoclingDocumentParser {
 
         } catch (Exception e) {
             LOG.errorf(e, "Failed to parse document: %s", documentFile.fileName);
-            throw new RuntimeException("Failed to parse PDF document: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to parse document: " + e.getMessage(), e);
         }
     }
 
     /**
      * Call Docling Serve API to convert document to markdown.
      */
-    private String callDoclingApi(byte[] pdfContent, String fileName) {
+    private String callDoclingApi(byte[] documentContent, String fileName) {
         LOG.infof("Calling Docling Serve API for file: %s", fileName);
 
-        // Encode PDF content to Base64 (required by FileSource)
-        String base64Content = Base64.getEncoder().encodeToString(pdfContent);
+        // Encode document content to Base64 (required by FileSource)
+        String base64Content = Base64.getEncoder().encodeToString(documentContent);
 
         ConvertDocumentRequest request = ConvertDocumentRequest.builder()
                 .source(FileSource.builder()
