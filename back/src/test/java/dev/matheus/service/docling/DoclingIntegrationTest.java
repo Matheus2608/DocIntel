@@ -38,7 +38,9 @@ class DoclingIntegrationTest {
 
     @Container // Re-enabled for REFACTOR phase
     static DoclingServeContainer doclingServeContainer = new DoclingServeContainer(
-            DoclingServeContainerConfig.builder().build()
+            DoclingServeContainerConfig.builder()
+                    .image("ghcr.io/docling-project/docling-serve:v1.9.0")
+                    .build()
     );
 
     @Inject
