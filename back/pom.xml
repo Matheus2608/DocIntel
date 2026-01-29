@@ -171,6 +171,14 @@
             <version>3.27.6</version>
             <scope>test</scope>
         </dependency>
+        
+        <!-- Docling Testcontainers for Integration Tests -->
+        <dependency>
+            <groupId>ai.docling</groupId>
+            <artifactId>docling-testcontainers</artifactId>
+            <version>0.4.3</version>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 

@@ -35,9 +35,31 @@ public class DocumentFile extends PanacheEntityBase {
     @Column(name = "uploaded_at", nullable = false)
     public LocalDateTime uploadedAt;
 
+    // Docling processing fields
+    @Enumerated(EnumType.STRING)
+    @Column(name = "processing_status", nullable = false, length = 20)
+    public ProcessingStatus processingStatus = ProcessingStatus.PENDING;
+
+    @Column(name = "processing_error", columnDefinition = "TEXT")
+    public String processingError;
+
+    @Column(name = "processed_at")
+    public LocalDateTime processedAt;
+
+    @Column(name = "chunk_count")
+    public Integer chunkCount;
+
+    @Column(name = "processor_version", length = 50)
+    public String processorVersion;
+
     @PrePersist
     public void prePersist() {
-        uploadedAt = LocalDateTime.now();
+        if (uploadedAt == null) {
+            uploadedAt = LocalDateTime.now();
+        }
+        if (processingStatus == null) {
+            processingStatus = ProcessingStatus.PENDING;
+        }
     }
 }
 

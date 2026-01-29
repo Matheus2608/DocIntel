@@ -26,12 +26,12 @@
 
 **Purpose**: Project initialization and Docling dependencies
 
-- [ ] T001 Add Docling Maven dependencies (docling-serve-client, docling-testcontainers) in back/pom.xml
-- [ ] T002 [P] Create Docling Serve configuration in docker-compose.yml at project root
-- [ ] T003 [P] Add Docling configuration properties to back/src/main/resources/application.properties
-- [ ] T004 [P] Create test fixture PDF with tables at back/src/test/resources/fixtures/test-pdf-with-tables.pdf
-- [ ] T005 [P] Create test fixture DOCX with formatting at back/src/test/resources/fixtures/test-docx-formatted.docx
-- [ ] T006 [P] Create test fixture multi-column PDF at back/src/test/resources/fixtures/test-multicolumn.pdf
+- [X] T001 Add Docling Maven dependencies (docling-serve-client, docling-testcontainers) in back/pom.xml
+- [X] T002 [P] Create Docling Serve configuration in docker-compose.yml at project root
+- [X] T003 [P] Add Docling configuration properties to back/src/main/resources/application.properties
+- [X] T004 [P] Create test fixture PDF with tables at back/src/test/resources/fixtures/test-pdf-with-tables.pdf
+- [X] T005 [P] Create test fixture DOCX with formatting at back/src/test/resources/fixtures/test-docx-formatted.docx
+- [X] T006 [P] Create test fixture multi-column PDF at back/src/test/resources/fixtures/test-multicolumn.pdf
 
 ---
 
@@ -41,16 +41,16 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T007 Create database migration script at back/src/main/resources/db/migration/V20250128__add_docling_entities.sql
-- [ ] T008 [P] Create ContentType enum in back/src/main/java/dev/matheus/entity/ContentType.java
-- [ ] T009 [P] Create ProcessingStatus enum in back/src/main/java/dev/matheus/entity/ProcessingStatus.java
-- [ ] T010 Create DocumentChunk entity in back/src/main/java/dev/matheus/entity/DocumentChunk.java
-- [ ] T011 Create ChunkEmbedding entity in back/src/main/java/dev/matheus/entity/ChunkEmbedding.java
-- [ ] T012 Modify DocumentFile entity to add processing fields in back/src/main/java/dev/matheus/entity/DocumentFile.java
-- [ ] T013 Modify HypoteticalQuestion entity to add chunkId field in back/src/main/java/dev/matheus/entity/HypoteticalQuestion.java
-- [ ] T014 Create DoclingConfigProperties config class in back/src/main/java/dev/matheus/service/docling/DoclingConfigProperties.java
-- [ ] T015 [P] Create ChunkResponse DTO in back/src/main/java/dev/matheus/dto/ChunkResponse.java
-- [ ] T016 [P] Create ProcessingStatusResponse DTO in back/src/main/java/dev/matheus/dto/ProcessingStatusResponse.java
+- [X] T007 Create database migration script at back/src/main/resources/db/migration/V20250128__add_docling_entities.sql
+- [X] T008 [P] Create ContentType enum in back/src/main/java/dev/matheus/entity/ContentType.java
+- [X] T009 [P] Create ProcessingStatus enum in back/src/main/java/dev/matheus/entity/ProcessingStatus.java
+- [X] T010 Create DocumentChunk entity in back/src/main/java/dev/matheus/entity/DocumentChunk.java
+- [X] T011 Create ChunkEmbedding entity in back/src/main/java/dev/matheus/entity/ChunkEmbedding.java
+- [X] T012 Modify DocumentFile entity to add processing fields in back/src/main/java/dev/matheus/entity/DocumentFile.java
+- [X] T013 Modify HypoteticalQuestion entity to add chunkId field in back/src/main/java/dev/matheus/entity/HypoteticalQuestion.java
+- [X] T014 Create DoclingConfigProperties config class in back/src/main/java/dev/matheus/service/docling/DoclingConfigProperties.java
+- [X] T015 [P] Create ChunkResponse DTO in back/src/main/java/dev/matheus/dto/ChunkResponse.java
+- [X] T016 [P] Create ProcessingStatusResponse DTO in back/src/main/java/dev/matheus/dto/ProcessingStatusResponse.java
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 

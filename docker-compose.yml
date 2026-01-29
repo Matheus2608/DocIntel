@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # Docling Serve - Document processing backend
+  docling-serve:
+    image: docling-project/docling-serve:latest
+    container_name: docintel-docling-serve
+    ports:
+      - "5000:5000"
+    environment:
+      - DOCLING_WORKERS=2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # PostgreSQL with pgvector extension
+  postgres:
+    image: pgvector/pgvector:pg14
+    container_name: docintel-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=meu_banco
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local

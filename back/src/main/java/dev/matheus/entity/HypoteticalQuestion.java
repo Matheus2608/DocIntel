@@ -29,4 +29,10 @@ public class HypoteticalQuestion extends PanacheEntityBase {
     @JoinColumn(name = "retrieval_info_id", nullable = false)
     @JsonIgnore // Prevent infinite recursion during JSON serialization
     public RetrievalInfo retrievalInfo;
+
+    // Reference to DocumentChunk (nullable for backwards compatibility)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chunk_id")
+    @JsonIgnore
+    public DocumentChunk documentChunk;
 }
