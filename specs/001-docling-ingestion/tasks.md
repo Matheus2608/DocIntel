@@ -66,23 +66,23 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T017 [P] [US1] Write unit test for PDF table extraction in back/src/test/java/dev/matheus/service/docling/DoclingDocumentParserTest.java
-- [ ] T018 [P] [US1] Write unit test for markdown table syntax validation in back/src/test/java/dev/matheus/service/docling/DoclingDocumentParserTest.java
-- [ ] T019 [P] [US1] Write integration test for PDF processing with Testcontainers in back/src/test/java/dev/matheus/service/docling/DoclingIntegrationTest.java
-- [ ] T020 [US1] Verify all US1 tests FAIL (RED phase complete)
+- [X] T017 [P] [US1] Write unit test for PDF table extraction in back/src/test/java/dev/matheus/service/docling/DoclingDocumentParserTest.java
+- [X] T018 [P] [US1] Write unit test for markdown table syntax validation in back/src/test/java/dev/matheus/service/docling/DoclingDocumentParserTest.java
+- [X] T019 [P] [US1] Write integration test for PDF processing with Testcontainers in back/src/test/java/dev/matheus/service/docling/DoclingIntegrationTest.java
+- [X] T020 [US1] Verify all US1 tests FAIL (RED phase complete)
 
 ### Implementation for User Story 1 (TDD GREEN Phase)
 
-- [ ] T021 [US1] Create DoclingDocumentParser service in back/src/main/java/dev/matheus/service/docling/DoclingDocumentParser.java
-- [ ] T022 [US1] Implement PDF parsing with DoclingServeApi in DoclingDocumentParser
-- [ ] T023 [US1] Implement table extraction and markdown conversion in DoclingDocumentParser
-- [ ] T024 [US1] Implement multi-page table handling (keep tables together) in DoclingDocumentParser
-- [ ] T025 [US1] Run US1 tests and verify all PASS (GREEN phase complete)
+- [X] T021 [US1] Create DoclingDocumentParser service in back/src/main/java/dev/matheus/service/docling/DoclingDocumentParser.java
+- [X] T022 [US1] Implement PDF parsing with DoclingServeApi in DoclingDocumentParser
+- [X] T023 [US1] Implement table extraction and markdown conversion in DoclingDocumentParser
+- [X] T024 [US1] Implement multi-page table handling (keep tables together) in DoclingDocumentParser
+- [X] T025 [US1] Run US1 tests and verify all PASS (GREEN phase complete)
 
 ### Refactor for User Story 1 (TDD REFACTOR Phase)
 
-- [ ] T026 [US1] Review and refactor DoclingDocumentParser for code quality
-- [ ] T027 [US1] Add logging and error handling for PDF processing
+- [X] T026 [US1] Review and refactor DoclingDocumentParser for code quality
+- [X] T027 [US1] Add logging and error handling for PDF processing
 
 **Checkpoint**: User Story 1 complete - PDF with tables can be uploaded and converted to markdown
 
