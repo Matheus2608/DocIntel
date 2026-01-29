@@ -8,6 +8,7 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -357,7 +358,20 @@ class DoclingChunkingServiceTest {
             
             // Check for incomplete sentences (sentences that don't end properly)
             Pattern incompleteSentence = Pattern.compile("[a-z]\\s*$", Pattern.MULTILINE);
-            boolean hasIncompleteSentence = incompleteSentence.matcher(content).find();
+            Matcher matcher = incompleteSentence.matcher(content);
+            boolean hasIncompleteSentence = false;
+            
+            // Check if any line ending with lowercase is NOT a heading
+            while (matcher.find()) {
+                int lineStart = content.lastIndexOf('\n', matcher.start()) + 1;
+                String lineWithMatch = content.substring(lineStart, content.indexOf('\n', matcher.start()) >= 0 ? 
+                        content.indexOf('\n', matcher.start()) : content.length());
+                // If the line is a heading, it's acceptable to end with lowercase
+                if (!lineWithMatch.trim().matches("^#+\\s+.*")) {
+                    hasIncompleteSentence = true;
+                    break;
+                }
+            }
             
             if (hasIncompleteSentence) {
                 // Allow if it's a list item or heading at the end

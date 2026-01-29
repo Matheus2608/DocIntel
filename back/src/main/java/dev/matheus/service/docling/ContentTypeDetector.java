@@ -1,6 +1,7 @@
 package dev.matheus.service.docling;
 
 import dev.matheus.entity.ContentType;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.regex.Pattern;
 
@@ -8,6 +9,7 @@ import java.util.regex.Pattern;
  * Detects content type from markdown text.
  * Analyzes markdown content and classifies it into appropriate ContentType.
  */
+@ApplicationScoped
 public class ContentTypeDetector {
 
     private static final Pattern TABLE_SEPARATOR_PATTERN = Pattern.compile("\\|[-:| ]+\\|");

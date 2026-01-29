@@ -1,9 +1,12 @@
 package dev.matheus.service.docling;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
 /**
  * Estimates token count for text content.
  * Uses approximation: 1 token ≈ 4 characters (English text average).
  */
+@ApplicationScoped
 public class TokenEstimator {
 
     private static final int CHARACTERS_PER_TOKEN = 4;
