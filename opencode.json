@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "tessl": {
+      "type": "local",
+      "command": ["tessl", "mcp", "start"],
+      "enabled": true
+    }
+  },
+  "instructions": [
+    "CLAUDE.md"
+  ],
+  "permission": {
+    "skill": {
+      "*": "allow",
+      "tdd-integration": "allow"
+    }
+  }
+}
