@@ -28,19 +28,15 @@
 
 ### Technology Stack
 
-- **Backend**: Node.js 20, Express, PostgreSQL, Prisma
-- **Frontend**: React 18, TypeScript, Vite, TanStack Query
-- **Testing**: Jest, React Testing Library, MSW
+- **Backend**: Java 21+, Quarkus 3.30+, PostgreSQL with pgvector, Hibernate Panache
+- **Frontend**: React 19, TypeScript, Vite, TanStack Query
+- **Testing**: JUnit 5, React Testing Library, Testcontainers
 - **Styling**: Custom CSS + Variables (no Tailwind/CSS-in-JS)
 
-### Current Phase Status
+### Current Branch
 
-- Phase 1: Setup ✓
-- Phase 2: Infrastructure ✓
-- Phase 3: Content Extraction ✓
-- Phase 4: Review System (Backend) ✓
-- Phase 4: Review System (Frontend) → USE TDD SUBAGENTS
-- Phase 5-8: Pending
+- Branch: 002-embedding-search
+- Status: Document embedding and retrieval system implementation
 
 ---
 
@@ -77,9 +73,9 @@ Use the provided export script:
 ## Key References
 
 - `AGENTS.md` → Implementation sequence (MCP tools, commands, subagents, skills) and workflow examples
-- `specs/001-flashcards-mvp/` → Full project specifications
+- `specs/` → Project specifications
 - `.tessl/local-tiles/` → Project-specific context patterns
-- `backend/src/`, `frontend/src/` → Implementation code
+- `back/src/`, `front/src/` → Implementation code
 
 @AGENTS.md
 

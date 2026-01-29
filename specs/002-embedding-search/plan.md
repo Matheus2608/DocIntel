@@ -11,7 +11,7 @@ Create a dedicated page for searching embeddings in pgvector by text query, disp
 **Language/Version**: Java 21+ (Backend), TypeScript (Frontend)
 **Primary Dependencies**: Quarkus 3.30+, LangChain4j, React 19, Vite 7.2
 **Storage**: PostgreSQL 14+ with pgvector extension (existing)
-**Testing**: JUnit 5, Jest, React Testing Library
+**Testing**: JUnit 5, React Testing Library, Testcontainers
 **Target Platform**: Web application (Linux server backend, browser frontend)
 **Project Type**: web (backend + frontend)
 **Performance Goals**: < 2 seconds search response, < 500ms UI interactions

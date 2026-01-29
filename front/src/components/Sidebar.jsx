@@ -6,7 +6,8 @@ import {
     Trash2,
     Moon,
     Sun,
-    Loader2
+    Loader2,
+    Database
 } from 'lucide-react';
 import { getDarkModeClasses } from '../config';
 
@@ -18,6 +19,8 @@ export const Sidebar = ({
     onNewChat, 
     onSelectChat, 
     onDeleteChat,
+    onNavigateToEmbedding,
+    currentView,
     isLoading 
 }) => {
     const { darkModeBg, pageBgAndText, borderColor } = getDarkModeClasses(isDarkMode);
@@ -94,6 +97,15 @@ export const Sidebar = ({
 
             {/* Footer da Sidebar */}
             <div className="p-4 border-t border-gray-700 space-y-1">
+                <button 
+                    className={`w-full flex items-center gap-3 px-3 py-3 hover:bg-gray-800 rounded-md text-sm transition-colors ${
+                        currentView === 'embedding' ? 'bg-gray-700' : ''
+                    }`}
+                    onClick={onNavigateToEmbedding}
+                >
+                    <Database size={16} />
+                    Embedding Search
+                </button>
                 <button className="w-full flex items-center gap-3 px-3 py-3 hover:bg-gray-800 rounded-md text-sm transition-colors">
                     <Settings size={16} />
                     Settings

@@ -24,14 +24,13 @@
     - tdd-implementer for implementation
     - tdd-refactorer for optimization
   - Must query library docs before coding using mcp__tessl__query_library_docs
-  - Tech Stack: Node.js 20, Express, PostgreSQL, Prisma, React 18, TypeScript,
-  Vite
-  - Current Phase: Phase 4 Review System (Frontend) → USE TDD SUBAGENTS
+  - Tech Stack: Java 21+, Quarkus 3.30+, PostgreSQL with pgvector, Hibernate Panache, React 19, TypeScript,
+  Vite, TanStack Query
+  - Current Branch: 002-embedding-search (embedding and retrieval system)
 
   Current Project Status:
-  - Phases 1-4 (Backend) complete
-  - Phase 4 (Frontend) in progress using TDD
-  - Phases 5-8 pending
+  - Branch: 002-embedding-search
+  - Focus: Document embedding and retrieval system implementation
 
   What would you like to work on? I'm ready to follow the implementation
   sequence for any feature you need.

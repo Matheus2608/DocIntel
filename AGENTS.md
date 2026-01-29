@@ -37,12 +37,13 @@ For **Skills**: Call Skill() tool (e.g., Skill(skill="frontend-design", ...))
 Example:
 ```
 mcp__tessl__query_library_docs("React Query patterns with TypeScript")
+mcp__tessl__query_library_docs("Quarkus REST resources with Hibernate Panache")
 /specify
 /plan
-Task(subagent_type="tdd-test-writer", description="Write failing tests for ReviewPage")
-Task(subagent_type="tdd-implementer", description="Implement ReviewPage component")
-Task(subagent_type="tdd-refactorer", description="Optimize ReviewPage code")
-Skill(skill="webapp-testing", args="Test ReviewPage interactions")
+Task(subagent_type="tdd-test-writer", description="Write failing tests for ChatResource")
+Task(subagent_type="tdd-implementer", description="Implement ChatResource endpoint")
+Task(subagent_type="tdd-refactorer", description="Optimize ChatResource code")
+Skill(skill="webapp-testing", args="Test chat interactions")
 ```
 
 ## Step 3: IMPLEMENT
@@ -55,17 +56,17 @@ Only after Step 2 is complete, proceed with task completion.
 
 ## Backend Feature Implementation
 
-1. Query `mcp__tessl__query_library_docs`: Express patterns, error handling, database queries
+1. Query `mcp__tessl__query_library_docs`: Quarkus patterns, REST resources, Hibernate Panache queries
 2. Run `/specify` (if needed): Define API endpoints and business logic
-3. Run `/plan` (if needed): Design service and controller structure
-4. Task(subagent_type="tdd-test-writer"): Write failing integration tests
-5. Task(subagent_type="tdd-implementer"): Implement services/controllers to pass tests
+3. Run `/plan` (if needed): Design service and resource structure
+4. Task(subagent_type="tdd-test-writer"): Write failing integration tests with JUnit 5
+5. Task(subagent_type="tdd-implementer"): Implement services/resources to pass tests
 6. Task(subagent_type="tdd-refactorer"): Optimize code while keeping tests passing
 7. Commit with concise message
 
 ## Frontend Feature Implementation
 
-1. Query `mcp__tessl__query_library_docs`: React 18, TypeScript, React Query patterns
+1. Query `mcp__tessl__query_library_docs`: React 19, TypeScript, TanStack Query patterns
 2. Skill(skill="frontend-design"): Create UI mockups and component structure
 3. Task(subagent_type="tdd-test-writer"): Write failing component tests
 4. Task(subagent_type="tdd-implementer"): Implement React components to pass tests

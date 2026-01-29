@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Main } from './components/Main';
+import EmbeddingSearch from './components/EmbeddingSearch';
 import { getDarkModeClasses } from './config';
 import { useChats } from './hooks/useChats';
 import RagModal from './components/RagModal';
@@ -8,6 +9,7 @@ import RagModal from './components/RagModal';
 const App = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [activeChatId, setActiveChatId] = useState(null);
+  const [currentView, setCurrentView] = useState('chat'); // 'chat' or 'embedding'
 
   // Hook para gerenciar chats do backend
   const { chats, isLoading, addChat, deleteChat } = useChats();
@@ -20,17 +22,20 @@ const App = () => {
   // Handler para criar novo chat
   const handleNewChat = () => {
     setActiveChatId(null); // Volta para tela de upload
+    setCurrentView('chat');
   };
 
   // Handler quando upload é bem-sucedido
   const handleChatCreated = (chatData) => {
     addChat(chatData);
     setActiveChatId(chatData.id);
+    setCurrentView('chat');
   };
 
   // Handler para selecionar chat
   const handleSelectChat = (chatId) => {
     setActiveChatId(chatId);
+    setCurrentView('chat');
   };
 
   // Handler para deletar chat
@@ -39,6 +44,12 @@ const App = () => {
     if (success && chatId === activeChatId) {
       setActiveChatId(null);
     }
+  };
+
+  // Handler para navegar para embedding search
+  const handleNavigateToEmbedding = () => {
+    setCurrentView('embedding');
+    setActiveChatId(null);
   };
 
   return (
@@ -51,13 +62,19 @@ const App = () => {
         onNewChat={handleNewChat}
         onSelectChat={handleSelectChat}
         onDeleteChat={handleDeleteChat}
+        onNavigateToEmbedding={handleNavigateToEmbedding}
+        currentView={currentView}
         isLoading={isLoading}
       />
-      <Main
-        isDarkMode={isDarkMode}
-        currentChat={activeChat}
-        onChatCreated={handleChatCreated}
-      />
+      {currentView === 'chat' ? (
+        <Main
+          isDarkMode={isDarkMode}
+          currentChat={activeChat}
+          onChatCreated={handleChatCreated}
+        />
+      ) : (
+        <EmbeddingSearch />
+      )}
     </div>
   );
 };
