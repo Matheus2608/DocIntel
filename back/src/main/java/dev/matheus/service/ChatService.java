@@ -58,6 +58,9 @@ public class ChatService {
     @Inject
     HypotheticalQuestionService hypotheticalQuestionService;
 
+    @Inject
+    AsyncDocumentProcessingService asyncProcessingService;
+
 
     @Transactional
     public ChatResponse createChat(byte[] fileData, String fileName, String fileType) throws IOException {
@@ -88,17 +91,9 @@ public class ChatService {
         LOG.infof("Chat created successfully: chatId=%s, documentId=%s, title=%s",
                 chat.id, documentFile.id, chat.title);
 
-        // Process document with Docling and generate embeddings
-        LOG.infof("Starting Docling processing and embedding generation for file=%s", fileName);
-        try {
-            documentIngestionService.processDocument(documentFile);
-            hypotheticalQuestionService.generateEmbeddings(documentFile);
-            LOG.infof("Document processing and embedding generation completed successfully for file=%s", fileName);
-        } catch (Exception e) {
-            LOG.errorf(e, "Failed to process document or generate embeddings for file=%s", fileName);
-            // Document status is already marked as FAILED by documentIngestionService
-            throw new RuntimeException("Failed to process document: " + e.getMessage(), e);
-        }
+        // Start asynchronous document processing (non-blocking)
+        LOG.infof("Starting async document processing for file=%s", fileName);
+        asyncProcessingService.processDocumentAsync(documentFile);
 
         return mapToChatResponse(chat);
     }
@@ -336,6 +331,11 @@ public class ChatService {
 
     public DocumentFile getDocumentEntity(String chatId) {
         return documentFileRepository.findByChatId(chatId)
+                .orElseThrow(() -> new NotFoundException("Document not found for this chat"));
+    }
+    
+    public dev.matheus.dto.DocumentStatusDTO getDocumentStatus(String chatId) {
+        return documentFileRepository.findStatusByChatId(chatId)
                 .orElseThrow(() -> new NotFoundException("Document not found for this chat"));
     }
 
