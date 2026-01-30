@@ -13,6 +13,7 @@ import dev.matheus.dto.DocumentFileResponse;
 import dev.matheus.entity.Chat;
 import dev.matheus.entity.ChatMessage;
 import dev.matheus.entity.DocumentFile;
+import dev.matheus.entity.ProcessingStatus;
 import dev.matheus.entity.RetrievalInfo;
 import dev.matheus.repository.ChatMessageRepository;
 import dev.matheus.repository.ChatRepository;
@@ -51,6 +52,12 @@ public class ChatService {
     @Inject
     EmbeddingStore<TextSegment> embeddingStore;
 
+    @Inject
+    DocumentIngestionService documentIngestionService;
+
+    @Inject
+    HypotheticalQuestionService hypotheticalQuestionService;
+
 
     @Transactional
     public ChatResponse createChat(byte[] fileData, String fileName, String fileType) throws IOException {
@@ -73,6 +80,7 @@ public class ChatService {
         documentFile.fileName = fileName;
         documentFile.fileType = fileType;
         documentFile.fileSize = (long) fileData.length;
+        documentFile.processingStatus = ProcessingStatus.PENDING; // Initialize with PENDING status
 
         chat.documentFile = documentFile;
 
@@ -80,8 +88,17 @@ public class ChatService {
         LOG.infof("Chat created successfully: chatId=%s, documentId=%s, title=%s",
                 chat.id, documentFile.id, chat.title);
 
-        Log.infof("Starting RAG ingestion for file=%s", fileName);
-        retrievalInfoService.ingestionOfHypotheticalQuestions(fileData, fileName, fileType);
+        // Process document with Docling and generate embeddings
+        LOG.infof("Starting Docling processing and embedding generation for file=%s", fileName);
+        try {
+            documentIngestionService.processDocument(documentFile);
+            hypotheticalQuestionService.generateEmbeddings(documentFile);
+            LOG.infof("Document processing and embedding generation completed successfully for file=%s", fileName);
+        } catch (Exception e) {
+            LOG.errorf(e, "Failed to process document or generate embeddings for file=%s", fileName);
+            // Document status is already marked as FAILED by documentIngestionService
+            throw new RuntimeException("Failed to process document: " + e.getMessage(), e);
+        }
 
         return mapToChatResponse(chat);
     }
