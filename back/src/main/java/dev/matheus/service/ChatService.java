@@ -15,11 +15,13 @@ import dev.matheus.entity.ChatMessage;
 import dev.matheus.entity.DocumentFile;
 import dev.matheus.entity.ProcessingStatus;
 import dev.matheus.entity.RetrievalInfo;
+import dev.matheus.event.DocumentCreatedEvent;
 import dev.matheus.repository.ChatMessageRepository;
 import dev.matheus.repository.ChatRepository;
 import dev.matheus.repository.DocumentFileRepository;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
@@ -61,6 +63,9 @@ public class ChatService {
     @Inject
     AsyncDocumentProcessingService asyncProcessingService;
 
+    @Inject
+    Event<DocumentCreatedEvent> documentCreatedEvent;
+
 
     @Transactional
     public ChatResponse createChat(byte[] fileData, String fileName, String fileType) throws IOException {
@@ -91,9 +96,11 @@ public class ChatService {
         LOG.infof("Chat created successfully: chatId=%s, documentId=%s, title=%s",
                 chat.id, documentFile.id, chat.title);
 
-        // Start asynchronous document processing (non-blocking)
-        LOG.infof("Starting async document processing for file=%s", fileName);
-        asyncProcessingService.processDocumentAsync(documentFile);
+        // Fire CDI event that will be handled AFTER transaction commits
+        // The listener observes this event with TransactionPhase.AFTER_SUCCESS
+        // This ensures the document is visible to async processing threads
+        LOG.infof("Firing document created event: docId=%s, fileName=%s", documentFile.id, fileName);
+        documentCreatedEvent.fire(new DocumentCreatedEvent(documentFile.id, fileName));
 
         return mapToChatResponse(chat);
     }

@@ -33,10 +33,9 @@ public class AsyncDocumentProcessingService {
      * Start asynchronous processing for a document.
      * Returns immediately while processing continues in background.
      */
-    public void processDocumentAsync(DocumentFile documentFile) {
-        String docId = documentFile.id;
+    public void processDocumentAsync(String docId, String fileName) {
         LOG.infof("Queuing document for async processing: docId=%s, fileName=%s", 
-                docId, documentFile.fileName);
+                docId, fileName);
         
         // Check if already processing
         if (processingTasks.containsKey(docId)) {
@@ -50,10 +49,10 @@ public class AsyncDocumentProcessingService {
                 LOG.infof("Starting async processing: docId=%s", docId);
                 
                 // Step 1: Parse with Docling and create chunks
-                documentIngestionService.processDocument(documentFile);
+                documentIngestionService.processDocument(docId);
                 
                 // Step 2: Generate embeddings
-                hypotheticalQuestionService.generateEmbeddings(documentFile);
+                hypotheticalQuestionService.generateEmbeddings(docId);
                 
                 LOG.infof("Async processing completed successfully: docId=%s", docId);
                 

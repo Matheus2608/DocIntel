@@ -58,7 +58,12 @@ public class HypotheticalQuestionService {
      * Generate embeddings for all chunks in a document
      */
     @Transactional
-    public void generateEmbeddings(DocumentFile doc) {
+    public void generateEmbeddings(String docId) {
+        DocumentFile doc = DocumentFile.findById(docId);
+        if (doc == null) {
+            throw new IllegalArgumentException("Document not found: " + docId);
+        }
+        
         Log.infof("Starting embedding generation - docId=%s, fileName=%s", doc.id, doc.fileName);
         List<DocumentChunk> chunks = DocumentChunk.list("documentFile.id", doc.id);
         Log.infof("Found chunks for embedding - docId=%s, chunkCount=%d", doc.id, chunks.size());

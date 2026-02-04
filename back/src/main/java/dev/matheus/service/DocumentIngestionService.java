@@ -34,11 +34,16 @@ public class DocumentIngestionService {
      * Process document using Docling and persist chunks
      */
     @Transactional
-    public void processDocument(DocumentFile doc) {
+    public void processDocument(String docId) {
+        DocumentFile doc = DocumentFile.findById(docId);
+        if (doc == null) {
+            throw new IllegalArgumentException("Document not found: " + docId);
+        }
+        
         Log.infof("Starting document processing - docId=%s, fileName=%s", doc.id, doc.fileName);
         try {
             // Transition to PROCESSING
-            startProcessing(doc);
+            startProcessing(docId);
             
             // Parse with Docling
             Log.debugf("Parsing document with Docling - docId=%s", doc.id);
@@ -51,12 +56,12 @@ public class DocumentIngestionService {
             }
             
             // Complete processing
-            completeProcessing(doc, chunks);
+            completeProcessing(docId, chunks);
             Log.infof("Document processing completed successfully - docId=%s, chunks=%d", doc.id, chunks.size());
             
         } catch (Exception e) {
-            Log.errorf(e, "Document processing failed - docId=%s, error=%s", doc.id, e.getMessage());
-            markAsFailed(doc, e.getMessage());
+            Log.errorf(e, "Document processing failed - docId=%s, error=%s", docId, e.getMessage());
+            markAsFailed(docId, e.getMessage());
             throw new RuntimeException("Document processing failed", e);
         }
     }
@@ -65,7 +70,11 @@ public class DocumentIngestionService {
      * Transition document to PROCESSING status
      */
     @Transactional
-    public void startProcessing(DocumentFile doc) {
+    public void startProcessing(String docId) {
+        DocumentFile doc = DocumentFile.findById(docId);
+        if (doc == null) {
+            throw new IllegalArgumentException("Document not found: " + docId);
+        }
         doc.processingStatus = ProcessingStatus.PROCESSING;
         doc.persist();
     }
@@ -74,7 +83,11 @@ public class DocumentIngestionService {
      * Mark document as COMPLETED
      */
     @Transactional
-    public void completeProcessing(DocumentFile doc, List<DocumentChunk> chunks) {
+    public void completeProcessing(String docId, List<DocumentChunk> chunks) {
+        DocumentFile doc = DocumentFile.findById(docId);
+        if (doc == null) {
+            throw new IllegalArgumentException("Document not found: " + docId);
+        }
         doc.processingStatus = ProcessingStatus.COMPLETED;
         doc.processedAt = LocalDateTime.now();
         doc.chunkCount = chunks.size();
@@ -86,7 +99,12 @@ public class DocumentIngestionService {
      * Mark document as FAILED with error message
      */
     @Transactional
-    public void markAsFailed(DocumentFile doc, String errorMessage) {
+    public void markAsFailed(String docId, String errorMessage) {
+        DocumentFile doc = DocumentFile.findById(docId);
+        if (doc == null) {
+            Log.errorf("Cannot mark as failed - document not found: docId=%s", docId);
+            return;
+        }
         doc.processingStatus = ProcessingStatus.FAILED;
         doc.processingError = errorMessage;
         doc.processedAt = LocalDateTime.now();
