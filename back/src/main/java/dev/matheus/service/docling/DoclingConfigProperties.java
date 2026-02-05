@@ -20,6 +20,14 @@ public interface DoclingConfigProperties {
     boolean enabled();
 
     /**
+     * Client-side timeout for Docling API calls.
+     * Must be >= server timeout to avoid premature timeouts on large documents.
+     * Default: 3600s (1 hour)
+     */
+    @WithDefault("PT3600S")
+    Duration clientTimeout();
+
+    /**
      * Chunking strategy to use.
      * Options: HIERARCHICAL, HYBRID
      * Default: HYBRID

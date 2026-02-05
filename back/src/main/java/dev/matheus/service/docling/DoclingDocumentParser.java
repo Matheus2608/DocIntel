@@ -12,11 +12,14 @@ import dev.matheus.entity.DocumentChunk;
 import dev.matheus.entity.DocumentFile;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -33,6 +36,10 @@ public class DoclingDocumentParser {
 
     @Inject
     DoclingConfigProperties config;
+
+    @Inject
+    @Named("retrievalExecutorService")
+    ExecutorService executorService;
 
     private final ContentTypeDetector contentTypeDetector = new ContentTypeDetector();
     private final TokenEstimator tokenEstimator = new TokenEstimator();
@@ -103,6 +110,7 @@ public class DoclingDocumentParser {
     /**
      * Call Docling Serve API to convert document to markdown.
      * Supports PDF, DOCX, and DOC formats.
+     * IMPORTANT: Runs on worker thread pool to avoid blocking Vert.x event loop.
      * 
      * @param documentContent The raw document bytes
      * @param fileName The document filename (used for format detection)
@@ -112,44 +120,47 @@ public class DoclingDocumentParser {
     private String callDoclingApi(byte[] documentContent, String fileName) {
         LOG.infof("Converting document to markdown via Docling API: %s", fileName);
 
-        // Encode document content to Base64 (required by FileSource)
-        String base64Content = Base64.getEncoder().encodeToString(documentContent);
-
-        ConvertDocumentRequest request = ConvertDocumentRequest.builder()
-                .source(FileSource.builder()
-                        .base64String(base64Content)
-                        .filename(fileName)
-                        .build())
-                .options(ConvertDocumentOptions.builder()
-                        .toFormat(OutputFormat.MARKDOWN)
-                        .tableMode(TableFormerMode.ACCURATE) // Use accurate table extraction
-                        .includeImages(false) // Skip images for now (focus on text/tables)
-                        .abortOnError(false) // Continue on partial errors
-                        .build())
-                .target(InBodyTarget.builder().build()) // Get results in HTTP response body
-                .build();
-
         try {
-            ConvertDocumentResponse response = doclingServeApi.convertSource(request);
-            
-            if (response == null || response.getDocument() == null) {
-                throw new RuntimeException("Docling API returned null response");
-            }
+            // Run Docling API call on worker thread to avoid blocking event loop
+            return executorService.submit(() -> {
+                // Encode document content to Base64 (required by FileSource)
+                String base64Content = Base64.getEncoder().encodeToString(documentContent);
 
-            String markdown = response.getDocument().getMarkdownContent();
-            
-            if (markdown == null || markdown.isEmpty()) {
-                LOG.warnf("Docling API returned empty markdown for: %s", fileName);
-                return "";
-            }
+                ConvertDocumentRequest request = ConvertDocumentRequest.builder()
+                        .source(FileSource.builder()
+                                .base64String(base64Content)
+                                .filename(fileName)
+                                .build())
+                        .options(ConvertDocumentOptions.builder()
+                                .toFormat(OutputFormat.MARKDOWN)
+                                .tableMode(TableFormerMode.ACCURATE) // Use accurate table extraction
+                                .includeImages(false) // Skip images for now (focus on text/tables)
+                                .abortOnError(false) // Continue on partial errors
+                                .build())
+                        .target(InBodyTarget.builder().build()) // Get results in HTTP response body
+                        .build();
 
-            LOG.infof("Docling API successfully converted %s to %d characters of markdown", 
-                      fileName, markdown.length());
-            
-            return markdown;
+                ConvertDocumentResponse response = doclingServeApi.convertSource(request);
+                
+                if (response == null || response.getDocument() == null) {
+                    throw new RuntimeException("Docling API returned null response");
+                }
 
+                String markdown = response.getDocument().getMarkdownContent();
+                
+                if (markdown == null || markdown.isEmpty()) {
+                    LOG.warnf("Docling API returned empty markdown for: %s", fileName);
+                    return "";
+                }
+
+                LOG.infof("Docling API successfully converted %s to %d characters of markdown", 
+                          fileName, markdown.length());
+                
+                return markdown;
+            }).get(config.clientTimeout().toMinutes(), TimeUnit.MINUTES); // Use configured timeout
+            
         } catch (Exception e) {
-            LOG.errorf(e, "Docling API call failed for: %s", fileName);
+            LOG.errorf(e, "Docling API call failed for: %s - %s", fileName, e.getClass().getSimpleName());
             throw new RuntimeException("Docling API conversion failed: " + e.getMessage(), e);
         }
     }
