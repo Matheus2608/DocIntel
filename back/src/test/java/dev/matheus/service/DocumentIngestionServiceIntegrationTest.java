@@ -95,7 +95,7 @@ class DocumentIngestionServiceIntegrationTest {
         assertThat(doc.processingStatus).isEqualTo(ProcessingStatus.PENDING);
         
         // When: Processing document
-        documentIngestionService.processDocument(doc);
+        documentIngestionService.processDocument(doc.id);
         
         // Then: Status updated to COMPLETED
         doc = DocumentFile.findById(doc.id);
@@ -160,7 +160,7 @@ class DocumentIngestionServiceIntegrationTest {
         final String docId = doc.id;
         
         // When: Processing fails
-        assertThatThrownBy(() -> documentIngestionService.processDocument(DocumentFile.findById(docId)))
+        assertThatThrownBy(() -> documentIngestionService.processDocument(docId))
                 .as("Should throw exception for invalid PDF")
                 .isInstanceOf(RuntimeException.class);
         
@@ -194,7 +194,7 @@ class DocumentIngestionServiceIntegrationTest {
                 .isEqualTo(ProcessingStatus.PENDING);
         
         // When: Start processing
-        documentIngestionService.startProcessing(doc);
+        documentIngestionService.startProcessing(doc.id);
         assertThat(doc.processingStatus)
                 .as("Document should transition to PROCESSING when started")
                 .isEqualTo(ProcessingStatus.PROCESSING);
@@ -205,7 +205,7 @@ class DocumentIngestionServiceIntegrationTest {
                 createMockChunk(doc, 1, "Second chunk content")
         );
         
-        documentIngestionService.completeProcessing(doc, mockChunks);
+        documentIngestionService.completeProcessing(doc.id, mockChunks);
         
         // Then: Status is COMPLETED
         assertThat(doc.processingStatus)
@@ -239,7 +239,7 @@ class DocumentIngestionServiceIntegrationTest {
         
         // When: Error occurs
         String errorMessage = "Docling API returned 500 Internal Server Error";
-        documentIngestionService.markAsFailed(doc, errorMessage);
+        documentIngestionService.markAsFailed(doc.id, errorMessage);
         
         // Then: Status transitions to FAILED
         doc = DocumentFile.findById(doc.id);
@@ -271,7 +271,7 @@ class DocumentIngestionServiceIntegrationTest {
         DocumentFile doc = createTestDocumentFile("test.pdf", pdfBytes);
         
         // When: Processing document
-        documentIngestionService.processDocument(doc);
+        documentIngestionService.processDocument(doc.id);
         
         // Then: Query chunks by document
         List<DocumentChunk> chunks = DocumentChunk.list("documentFile.id", doc.id);
@@ -308,7 +308,7 @@ class DocumentIngestionServiceIntegrationTest {
         DocumentFile doc = createTestDocumentFile("test-with-tables.pdf", pdfBytes);
         
         // When: Processing document
-        documentIngestionService.processDocument(doc);
+        documentIngestionService.processDocument(doc.id);
         
         // Then: Find table chunks
         List<DocumentChunk> chunks = DocumentChunk.list("documentFile.id", doc.id);

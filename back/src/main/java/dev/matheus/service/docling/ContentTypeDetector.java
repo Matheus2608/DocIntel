@@ -13,8 +13,8 @@ import java.util.regex.Pattern;
 public class ContentTypeDetector {
 
     private static final Pattern TABLE_SEPARATOR_PATTERN = Pattern.compile("\\|[-:| ]+\\|");
-    private static final Pattern HEADING_PATTERN = Pattern.compile("^#{1,6}\\s+.*", Pattern.MULTILINE);
-    private static final Pattern LIST_PATTERN = Pattern.compile("(?s).*^[\\-*+]\\s+.*");
+    private static final Pattern HEADING_PATTERN = Pattern.compile("^#{1,6}\\s+", Pattern.MULTILINE);
+    private static final Pattern LIST_PATTERN = Pattern.compile("^[\\-*+]\\s+", Pattern.MULTILINE);
     private static final Pattern CODE_PATTERN = Pattern.compile("```");
 
     /**

@@ -10,6 +10,7 @@ import dev.matheus.service.pdf.PdfTableExtractor;
 import dev.matheus.service.pdf.PdfTextExtractor;
 import dev.matheus.service.pdf.TextNormalizer;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -26,55 +27,112 @@ import java.util.List;
 public class DocumentIngestionService {
 
     private static final Logger Log = Logger.getLogger(DocumentIngestionService.class);
-    
+
     @Inject
     DoclingDocumentParser doclingParser;
 
     /**
-     * Process document using Docling and persist chunks
+     * Self-injection to call @Transactional methods through the CDI proxy.
+     * Direct self-invocation (this.method()) bypasses CDI interceptors,
+     * making @Transactional annotations NO-OPs.
      */
-    @Transactional
-    public void processDocument(DocumentFile doc) {
-        Log.infof("Starting document processing - docId=%s, fileName=%s", doc.id, doc.fileName);
+    @Inject
+    DocumentIngestionService self;
+
+    /**
+     * Process document using Docling and persist chunks.
+     *
+     * NOT @Transactional: the Docling API call can take hours. Holding a single
+     * transaction open would cause JTA timeout (1h) before Docling finishes (2h).
+     * Instead, uses short focused transactions for each database operation.
+     *
+     * @ActivateRequestContext: this method runs on async threads (from
+     * AsyncDocumentProcessingService) that have no CDI request context.
+     * The EntityManager is request-scoped and needs an active context.
+     */
+    @ActivateRequestContext
+    public void processDocument(String docId) {
+        Log.infof("Starting document processing - docId=%s", docId);
+
         try {
-            // Transition to PROCESSING
-            startProcessing(doc);
-            
-            // Parse with Docling
-            Log.debugf("Parsing document with Docling - docId=%s", doc.id);
+            // Short transaction: load document and set PROCESSING status
+            DocumentFile doc = self.startProcessing(docId);
+
+            // NO transaction: external HTTP call to Docling (can take hours)
+            Log.debugf("Parsing document with Docling - docId=%s, fileName=%s", docId, doc.fileName);
             List<DocumentChunk> chunks = doclingParser.parse(doc, doc.fileData);
-            Log.infof("Docling parsing complete - docId=%s, chunks=%d", doc.id, chunks.size());
-            
-            // Persist chunks
-            for (DocumentChunk chunk : chunks) {
-                chunk.persist();
-            }
-            
-            // Complete processing
-            completeProcessing(doc, chunks);
-            Log.infof("Document processing completed successfully - docId=%s, chunks=%d", doc.id, chunks.size());
-            
+            Log.infof("Docling parsing complete - docId=%s, chunks=%d", docId, chunks.size());
+
+            // Short transaction: persist chunks and mark COMPLETED
+            self.persistChunksAndComplete(docId, chunks);
+            Log.infof("Document processing completed successfully - docId=%s, chunks=%d", docId, chunks.size());
+
         } catch (Exception e) {
-            Log.errorf(e, "Document processing failed - docId=%s, error=%s", doc.id, e.getMessage());
-            markAsFailed(doc, e.getMessage());
+            Log.errorf(e, "Document processing failed - docId=%s, error=%s", docId, e.getMessage());
+            try {
+                // Separate transaction: mark as FAILED
+                // Called via self (CDI proxy) so @Transactional is activated.
+                // Since processDocument() has no @Transactional, the RuntimeException
+                // below does NOT trigger a rollback — the FAILED status is safe.
+                self.markAsFailed(docId, e.getMessage());
+            } catch (Exception failEx) {
+                Log.errorf(failEx, "Failed to mark document as FAILED - docId=%s", docId);
+            }
             throw new RuntimeException("Document processing failed", e);
         }
     }
 
     /**
-     * Transition document to PROCESSING status
+     * Transition document to PROCESSING status and return the entity.
+     * Short transaction that commits immediately.
+     * The returned entity will be detached after commit — its simple fields
+     * (fileName, fileData) remain accessible in memory.
      */
     @Transactional
-    public void startProcessing(DocumentFile doc) {
+    public DocumentFile startProcessing(String docId) {
+        DocumentFile doc = DocumentFile.findById(docId);
+        if (doc == null) {
+            throw new IllegalArgumentException("Document not found: " + docId);
+        }
         doc.processingStatus = ProcessingStatus.PROCESSING;
+        doc.persist();
+        return doc;
+    }
+
+    /**
+     * Persist document chunks and mark processing as complete.
+     * Short transaction for database writes only.
+     */
+    @Transactional
+    public void persistChunksAndComplete(String docId, List<DocumentChunk> chunks) {
+        DocumentFile doc = DocumentFile.findById(docId);
+        if (doc == null) {
+            throw new IllegalArgumentException("Document not found: " + docId);
+        }
+
+        // Re-associate chunks with the managed entity (chunks reference a
+        // detached DocumentFile from before the Docling call)
+        for (DocumentChunk chunk : chunks) {
+            chunk.documentFile = doc;
+            chunk.persist();
+        }
+
+        doc.processingStatus = ProcessingStatus.COMPLETED;
+        doc.processedAt = LocalDateTime.now();
+        doc.chunkCount = chunks.size();
+        doc.processorVersion = "docling-serve-v1.9.0";
         doc.persist();
     }
 
     /**
-     * Mark document as COMPLETED
+     * Mark document as COMPLETED (kept for external callers and tests)
      */
     @Transactional
-    public void completeProcessing(DocumentFile doc, List<DocumentChunk> chunks) {
+    public void completeProcessing(String docId, List<DocumentChunk> chunks) {
+        DocumentFile doc = DocumentFile.findById(docId);
+        if (doc == null) {
+            throw new IllegalArgumentException("Document not found: " + docId);
+        }
         doc.processingStatus = ProcessingStatus.COMPLETED;
         doc.processedAt = LocalDateTime.now();
         doc.chunkCount = chunks.size();
@@ -86,7 +144,12 @@ public class DocumentIngestionService {
      * Mark document as FAILED with error message
      */
     @Transactional
-    public void markAsFailed(DocumentFile doc, String errorMessage) {
+    public void markAsFailed(String docId, String errorMessage) {
+        DocumentFile doc = DocumentFile.findById(docId);
+        if (doc == null) {
+            Log.errorf("Cannot mark as failed - document not found: docId=%s", docId);
+            return;
+        }
         doc.processingStatus = ProcessingStatus.FAILED;
         doc.processingError = errorMessage;
         doc.processedAt = LocalDateTime.now();

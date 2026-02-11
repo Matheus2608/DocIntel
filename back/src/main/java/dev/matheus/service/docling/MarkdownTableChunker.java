@@ -50,8 +50,18 @@ public class MarkdownTableChunker {
                 currentTable.addLine(line);
             } else {
                 if (inTable) {
-                    // Table ended - save it as a chunk
-                    chunks.add(currentTable.build());
+                    // Table ended - check size and potentially split
+                    String tableContent = currentTable.build();
+                    int tableTokens = tokenEstimator.estimate(tableContent);
+                    
+                    if (tableTokens > maxTokensPerChunk) {
+                        // Table is too large - split it by rows
+                        LOG.warnf("Large table detected (%d tokens) - splitting into smaller chunks", tableTokens);
+                        chunks.addAll(splitLargeTable(tableContent));
+                    } else {
+                        chunks.add(tableContent);
+                    }
+                    
                     currentTable = new TableBuilder();
                     inTable = false;
                 }
@@ -71,7 +81,16 @@ public class MarkdownTableChunker {
         
         // Save any remaining table
         if (inTable && currentTable.hasContent()) {
-            chunks.add(currentTable.build());
+            String tableContent = currentTable.build();
+            int tableTokens = tokenEstimator.estimate(tableContent);
+            
+            if (tableTokens > maxTokensPerChunk) {
+                // Table is too large - split it by rows
+                LOG.warnf("Large table detected (%d tokens) - splitting into smaller chunks", tableTokens);
+                chunks.addAll(splitLargeTable(tableContent));
+            } else {
+                chunks.add(tableContent);
+            }
         }
         
         // Save any remaining content
@@ -84,7 +103,54 @@ public class MarkdownTableChunker {
     }
 
     private boolean isTableLine(String line) {
-        return line.trim().contains("|");
+        return line.trim().split("|").length >= 3;
+    }
+
+    /**
+     * Split a large table into smaller chunks by rows.
+     * Preserves table header in each chunk.
+     */
+    private List<String> splitLargeTable(String tableContent) {
+        List<String> chunks = new ArrayList<>();
+        String[] lines = tableContent.split("\n");
+        
+        if (lines.length < 3) {
+            // Too small to split (header + separator + at least 1 row)
+            chunks.add(tableContent);
+            return chunks;
+        }
+        
+        // Extract header (first 2 lines: header + separator)
+        String header = lines[0] + "\n" + lines[1];
+        int headerTokens = tokenEstimator.estimate(header);
+        
+        // Split remaining rows into chunks
+        StringBuilder currentChunk = new StringBuilder(header);
+        int currentTokens = headerTokens;
+        
+        for (int i = 2; i < lines.length; i++) {
+            String row = lines[i];
+            int rowTokens = tokenEstimator.estimate(row);
+            
+            // Check if adding this row would exceed limit
+            if (currentTokens + rowTokens > maxTokensPerChunk && currentChunk.length() > header.length()) {
+                // Save current chunk and start new one with header
+                chunks.add(currentChunk.toString().trim());
+                currentChunk = new StringBuilder(header);
+                currentTokens = headerTokens;
+            }
+            
+            currentChunk.append("\n").append(row);
+            currentTokens += rowTokens;
+        }
+        
+        // Save remaining chunk
+        if (currentChunk.length() > header.length()) {
+            chunks.add(currentChunk.toString().trim());
+        }
+        
+        LOG.debugf("Split large table into %d chunks", chunks.size());
+        return chunks;
     }
 
     /**

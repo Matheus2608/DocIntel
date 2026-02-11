@@ -113,6 +113,20 @@ public class ChatResource {
     }
 
     @GET
+    @Path("/{chatId}/document/status")
+    public Response getDocumentProcessingStatus(@PathParam("chatId") String chatId) {
+        LOG.debugf("Getting document processing status: chatId=%s", chatId);
+        var status = chatService.getDocumentStatus(chatId);
+        
+        return Response.ok(new DocumentProcessingStatusResponse(
+                status.status().toString(),
+                status.error(),
+                status.chunkCount(),
+                status.processedAt()
+        )).build();
+    }
+
+    @GET
     @Path("/{chatId}/document/download")
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     public Response downloadDocument(@PathParam("chatId") String chatId) {
@@ -125,6 +139,13 @@ public class ChatResource {
     }
 
     public record ErrorResponse(String message) {}
+    
+    public record DocumentProcessingStatusResponse(
+            String status,
+            String error,
+            Integer chunkCount,
+            java.time.LocalDateTime processedAt
+    ) {}
 
     private boolean isValidFile(FileUpload file) {
         return file != null && isValidFileType(file.contentType());

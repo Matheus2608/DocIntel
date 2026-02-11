@@ -15,11 +15,13 @@ import dev.matheus.entity.ChatMessage;
 import dev.matheus.entity.DocumentFile;
 import dev.matheus.entity.ProcessingStatus;
 import dev.matheus.entity.RetrievalInfo;
+import dev.matheus.event.DocumentCreatedEvent;
 import dev.matheus.repository.ChatMessageRepository;
 import dev.matheus.repository.ChatRepository;
 import dev.matheus.repository.DocumentFileRepository;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
@@ -58,6 +60,12 @@ public class ChatService {
     @Inject
     HypotheticalQuestionService hypotheticalQuestionService;
 
+    @Inject
+    AsyncDocumentProcessingService asyncProcessingService;
+
+    @Inject
+    Event<DocumentCreatedEvent> documentCreatedEvent;
+
 
     @Transactional
     public ChatResponse createChat(byte[] fileData, String fileName, String fileType) throws IOException {
@@ -88,17 +96,11 @@ public class ChatService {
         LOG.infof("Chat created successfully: chatId=%s, documentId=%s, title=%s",
                 chat.id, documentFile.id, chat.title);
 
-        // Process document with Docling and generate embeddings
-        LOG.infof("Starting Docling processing and embedding generation for file=%s", fileName);
-        try {
-            documentIngestionService.processDocument(documentFile);
-            hypotheticalQuestionService.generateEmbeddings(documentFile);
-            LOG.infof("Document processing and embedding generation completed successfully for file=%s", fileName);
-        } catch (Exception e) {
-            LOG.errorf(e, "Failed to process document or generate embeddings for file=%s", fileName);
-            // Document status is already marked as FAILED by documentIngestionService
-            throw new RuntimeException("Failed to process document: " + e.getMessage(), e);
-        }
+        // Fire CDI event that will be handled AFTER transaction commits
+        // The listener observes this event with TransactionPhase.AFTER_SUCCESS
+        // This ensures the document is visible to async processing threads
+        LOG.infof("Firing document created event: docId=%s, fileName=%s", documentFile.id, fileName);
+        documentCreatedEvent.fire(new DocumentCreatedEvent(documentFile.id, fileName));
 
         return mapToChatResponse(chat);
     }
@@ -336,6 +338,11 @@ public class ChatService {
 
     public DocumentFile getDocumentEntity(String chatId) {
         return documentFileRepository.findByChatId(chatId)
+                .orElseThrow(() -> new NotFoundException("Document not found for this chat"));
+    }
+    
+    public dev.matheus.dto.DocumentStatusDTO getDocumentStatus(String chatId) {
+        return documentFileRepository.findStatusByChatId(chatId)
                 .orElseThrow(() -> new NotFoundException("Document not found for this chat"));
     }
 

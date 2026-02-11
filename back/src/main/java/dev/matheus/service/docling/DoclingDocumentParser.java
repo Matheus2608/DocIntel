@@ -103,6 +103,8 @@ public class DoclingDocumentParser {
     /**
      * Call Docling Serve API to convert document to markdown.
      * Supports PDF, DOCX, and DOC formats.
+     * IMPORTANT: This method must be called from a worker thread (not event loop).
+     * The async processing ensures this happens via AsyncDocumentProcessingService.
      * 
      * @param documentContent The raw document bytes
      * @param fileName The document filename (used for format detection)
@@ -112,24 +114,24 @@ public class DoclingDocumentParser {
     private String callDoclingApi(byte[] documentContent, String fileName) {
         LOG.infof("Converting document to markdown via Docling API: %s", fileName);
 
-        // Encode document content to Base64 (required by FileSource)
-        String base64Content = Base64.getEncoder().encodeToString(documentContent);
-
-        ConvertDocumentRequest request = ConvertDocumentRequest.builder()
-                .source(FileSource.builder()
-                        .base64String(base64Content)
-                        .filename(fileName)
-                        .build())
-                .options(ConvertDocumentOptions.builder()
-                        .toFormat(OutputFormat.MARKDOWN)
-                        .tableMode(TableFormerMode.ACCURATE) // Use accurate table extraction
-                        .includeImages(false) // Skip images for now (focus on text/tables)
-                        .abortOnError(false) // Continue on partial errors
-                        .build())
-                .target(InBodyTarget.builder().build()) // Get results in HTTP response body
-                .build();
-
         try {
+            // Encode document content to Base64 (required by FileSource)
+            String base64Content = Base64.getEncoder().encodeToString(documentContent);
+
+            ConvertDocumentRequest request = ConvertDocumentRequest.builder()
+                    .source(FileSource.builder()
+                            .base64String(base64Content)
+                            .filename(fileName)
+                            .build())
+                    .options(ConvertDocumentOptions.builder()
+                            .toFormat(OutputFormat.MARKDOWN)
+                            .tableMode(TableFormerMode.ACCURATE) // Use accurate table extraction
+                            .includeImages(false) // Skip images for now (focus on text/tables)
+                            .abortOnError(false) // Continue on partial errors
+                            .build())
+                    .target(InBodyTarget.builder().build()) // Get results in HTTP response body
+                    .build();
+
             ConvertDocumentResponse response = doclingServeApi.convertSource(request);
             
             if (response == null || response.getDocument() == null) {
@@ -147,9 +149,9 @@ public class DoclingDocumentParser {
                       fileName, markdown.length());
             
             return markdown;
-
+            
         } catch (Exception e) {
-            LOG.errorf(e, "Docling API call failed for: %s", fileName);
+            LOG.errorf(e, "Docling API call failed for: %s - %s", fileName, e.getClass().getSimpleName());
             throw new RuntimeException("Docling API conversion failed: " + e.getMessage(), e);
         }
     }

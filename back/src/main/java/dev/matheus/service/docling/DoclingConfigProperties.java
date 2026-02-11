@@ -12,12 +12,6 @@ import java.time.Duration;
 @ConfigMapping(prefix = "docling")
 public interface DoclingConfigProperties {
 
-    /**
-     * Enable or disable Docling processing.
-     * Default: true
-     */
-    @WithDefault("true")
-    boolean enabled();
 
     /**
      * Chunking strategy to use.

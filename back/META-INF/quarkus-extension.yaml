@@ -1,0 +1,40 @@
+---
+name: "Quarkus Docling"
+artifact: "io.quarkiverse.docling:quarkus-docling::jar:1.2.1"
+description: "Runs Docling as an API service. Docling simplifies document processing,\
+  \ parsing diverse formats — including advanced PDF understanding — and providing\
+  \ seamless integrations with the gen AI ecosystem."
+metadata:
+  keywords:
+  - "ai"
+  - null
+  - "docling"
+  guide: "https://docs.quarkiverse.io/quarkus-docling/dev/index.html"
+  icon-url: "https://raw.githubusercontent.com/docling-project/docling-java/refs/heads/main/docs/src/doc/docs/assets/img/docling-java.png"
+  categories:
+  - "ai"
+  - "docling"
+  scm:
+    url: "https://github.com/docling-project/docling-java"
+  status: "experimental"
+  built-with-quarkus-core: "3.27.1"
+  requires-quarkus-core: "[3.27,)"
+  minimum-java-version: "17"
+  scm-url: "https://github.com/quarkiverse/quarkus-docling"
+  extension-dependencies:
+  - "io.quarkus:quarkus-arc"
+  - "io.quarkus:quarkus-core"
+  - "io.quarkus:quarkus-rest-client-jackson"
+  - "io.quarkus:quarkus-rest-jackson-common"
+  - "io.quarkus:quarkus-rest-common"
+  - "io.quarkus:quarkus-mutiny"
+  - "io.quarkus:quarkus-smallrye-context-propagation"
+  - "io.quarkus:quarkus-vertx"
+  - "io.quarkus:quarkus-netty"
+  - "io.quarkus:quarkus-virtual-threads"
+  - "io.quarkus:quarkus-jackson"
+  - "io.quarkus:quarkus-jsonp"
+  - "io.quarkus:quarkus-rest-client"
+  - "io.quarkus:quarkus-rest-client-jaxrs"
+  - "io.quarkus:quarkus-rest-client-config"
+  - "io.quarkus:quarkus-tls-registry"

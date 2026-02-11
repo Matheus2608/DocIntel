@@ -65,7 +65,7 @@ class HypotheticalQuestionServiceIntegrationTest {
                 .hasSize(5);
         
         // When: Generating embeddings
-        hypotheticalQuestionService.generateEmbeddings(doc);
+        hypotheticalQuestionService.generateEmbeddings(doc.id);
         
         // Then: ChunkEmbedding entities created
         List<ChunkEmbedding> embeddings = ChunkEmbedding.list("chunk.documentFile.id", doc.id);
@@ -112,7 +112,7 @@ class HypotheticalQuestionServiceIntegrationTest {
         DocumentChunk chunk = createTestChunk();
         
         // When: Generating hypothetical questions
-        hypotheticalQuestionService.generateEmbeddings(chunk);
+        hypotheticalQuestionService.generateEmbeddingsInTransaction(chunk);
         
         // Then: Questions created and linked via ChunkEmbedding
         List<ChunkEmbedding> chunkEmbeddings = ChunkEmbedding.list("chunk.id", chunk.id);
@@ -160,7 +160,7 @@ class HypotheticalQuestionServiceIntegrationTest {
         DocumentChunk chunk = createTestChunk();
         
         // When: Generating embeddings
-        hypotheticalQuestionService.generateEmbeddings(chunk);
+        hypotheticalQuestionService.generateEmbeddingsInTransaction(chunk);
         
         // Then: Multiple embedding types created
         List<ChunkEmbedding> embeddings = ChunkEmbedding.list("chunk.id", chunk.id);
@@ -192,7 +192,7 @@ class HypotheticalQuestionServiceIntegrationTest {
     void shouldTraceEmbeddingsBackToSourceChunks() {
         // Given: Multiple chunks with embeddings
         DocumentFile doc = createProcessedDocument();
-        hypotheticalQuestionService.generateEmbeddings(doc);
+        hypotheticalQuestionService.generateEmbeddings(doc.id);
         
         // When: Finding relevant content
         String query = "What is the pricing structure?";
@@ -315,7 +315,7 @@ class HypotheticalQuestionServiceIntegrationTest {
         int chunkCount = chunks.size();
         
         // When: Processing entire document
-        hypotheticalQuestionService.generateEmbeddings(doc);
+        hypotheticalQuestionService.generateEmbeddings(doc.id);
         
         // Then: All chunks have embeddings
         for (DocumentChunk chunk : chunks) {
