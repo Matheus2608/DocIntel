@@ -67,3 +67,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Test files and results
+test-results/
+test-*.spec.js
+test-*.txt
+package-lock.json
