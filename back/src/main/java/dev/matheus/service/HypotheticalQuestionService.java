@@ -310,7 +310,10 @@ public class HypotheticalQuestionService {
     @Transactional
     public void embedAndPersistQuestionInTransaction(DocumentChunk chunk, String question) {
         try {
-            TextSegment questionSegment = TextSegment.from(question,
+            // Clean JSON formatting artifacts from AI-generated questions
+            String cleanedQuestion = cleanJsonFormatting(question);
+
+            TextSegment questionSegment = TextSegment.from(cleanedQuestion,
                 new Metadata()
                     .put("PARAGRAPH", chunk.content)
                     .put("FILE_NAME", chunk.documentFile.fileName)
@@ -330,6 +333,33 @@ public class HypotheticalQuestionService {
                       chunk.id, question.substring(0, Math.min(50, question.length())));
             // Continue - failure to embed one question doesn't stop the process
         }
+    }
+
+    /**
+     * Clean JSON formatting artifacts from AI-generated questions.
+     * The AI service may return questions with literal JSON characters like "", ",", etc.
+     *
+     * @param question the raw question string from AI
+     * @return cleaned question without JSON formatting artifacts
+     */
+    String cleanJsonFormatting(String question) {
+        if (question == null || question.isBlank()) {
+            return question;
+        }
+
+        String cleaned = question.trim();
+
+        // Remove leading \" and trailing \", or \"
+        if (cleaned.startsWith("\\\"")) {
+            cleaned = cleaned.substring(2);
+        }
+        if (cleaned.endsWith("\\\",")) {
+            cleaned = cleaned.substring(0, cleaned.length() - 3);
+        } else if (cleaned.endsWith("\\\"")) {
+            cleaned = cleaned.substring(0, cleaned.length() - 2);
+        }
+
+        return cleaned.trim();
     }
 
     /**

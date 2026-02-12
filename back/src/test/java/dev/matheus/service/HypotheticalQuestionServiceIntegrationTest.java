@@ -300,8 +300,36 @@ class HypotheticalQuestionServiceIntegrationTest {
     }
 
     /**
+     * Verify JSON formatting artifacts are cleaned from questions
+     *
+     * Given: Questions with JSON formatting characters
+     * When: Cleaning the questions
+     * Then: JSON artifacts are removed
+     */
+    @Test
+    void shouldCleanJsonFormattingFromQuestions() {
+        // Given: Questions with JSON formatting
+        String withLeadingAndTrailingQuotesAndComma = "\\\"What is the pricing structure?\\\",";
+        String withLeadingAndTrailingQuotes = "\\\"How does machine learning work?\\\"";
+        String normalQuestion = "What are the benefits?";
+        String withSpaces = "  \\\"   Why is this important?   \\\",  ";
+
+        // When: Cleaning the questions
+        String cleaned1 = hypotheticalQuestionService.cleanJsonFormatting(withLeadingAndTrailingQuotesAndComma);
+        String cleaned2 = hypotheticalQuestionService.cleanJsonFormatting(withLeadingAndTrailingQuotes);
+        String cleaned3 = hypotheticalQuestionService.cleanJsonFormatting(normalQuestion);
+        String cleaned4 = hypotheticalQuestionService.cleanJsonFormatting(withSpaces);
+
+        // Then: JSON artifacts are removed
+        assertThat(cleaned1).isEqualTo("What is the pricing structure?");
+        assertThat(cleaned2).isEqualTo("How does machine learning work?");
+        assertThat(cleaned3).isEqualTo("What are the benefits?");
+        assertThat(cleaned4).isEqualTo("Why is this important?");
+    }
+
+    /**
      * T089: Verify batch processing for all chunks in a document
-     * 
+     *
      * Given: A document with multiple chunks
      * When: Processing entire document
      * Then: All chunks are processed and embedded

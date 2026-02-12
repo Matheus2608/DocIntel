@@ -75,19 +75,34 @@ const RagModal = ({ onClose, messageId }) => {
                     )}
 
                     <div className="space-y-6">
-                        {questions.map((source, index) => (
-                            <div key={source.id || index} className="bg-white dark:bg-[#24243e] border border-gray-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
+                        {questions.map((source, index) => {
+                            const isHyDeMatch = source.question !== userQuestion;
+                            const headerColor = isHyDeMatch
+                                ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-900/30"
+                                : "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30";
+                            const iconColor = isHyDeMatch
+                                ? "text-indigo-600 dark:text-indigo-400"
+                                : "text-emerald-600 dark:text-emerald-400";
+                            const labelColor = isHyDeMatch
+                                ? "text-indigo-700 dark:text-indigo-300"
+                                : "text-emerald-700 dark:text-emerald-300";
+                            const headerLabel = isHyDeMatch
+                                ? "Matched Question (HyDE)"
+                                : "Direct Content Match";
 
-                                {/* Parte Superior: A Conexão (Pergunta Hipotética) */}
-                                <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-900/30 flex gap-3 items-start">
-                                    <HelpCircle size={18} className="text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" />
-                                    <div>
-                                        <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 block mb-1">Matched Question (HyDE)</span>
-                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            "{source.question}"
-                                        </p>
+                            return (
+                                <div key={source.id || index} className="bg-white dark:bg-[#24243e] border border-gray-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
+
+                                    {/* Parte Superior: A Conexão (Pergunta Hipotética ou Match Direto) */}
+                                    <div className={`p-4 ${headerColor} border-b flex gap-3 items-start`}>
+                                        <HelpCircle size={18} className={`${iconColor} mt-0.5 shrink-0`} />
+                                        <div>
+                                            <span className={`text-xs font-bold uppercase tracking-wider ${labelColor} block mb-1`}>{headerLabel}</span>
+                                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                "{source.question}"
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
 
                                 {/* Parte Inferior: A Evidência e o Score */}
                                 <div className="p-4 flex flex-col md:flex-row gap-6">
@@ -121,7 +136,8 @@ const RagModal = ({ onClose, messageId }) => {
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                        );
+                        })}
                     </div>
                 </div>
 
