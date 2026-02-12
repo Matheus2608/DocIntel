@@ -81,11 +81,13 @@ public class DocumentSupportAgentWebSocket {
                 chatId, connection.id(), message != null ? message.length() : 0);
         Log.debugf("Message content: %s", message);
 
+        ChatMessageResponse userMessage = null;
         try {
             // Save user message in a separate transaction that will be committed immediately
-            ChatMessageResponse userMessage = chatService.addUserMessageAndCommit(chatId, message);
+            userMessage = chatService.addUserMessageAndCommit(chatId, message);
+            final String userMessageId = userMessage.id();
             Log.debugf("User message committed to database before AI call: chatId=%s, messageId=%s",
-                    chatId, userMessage.id());
+                    chatId, userMessageId);
 
             Multi<String> response = documentSupportAgent.chat(message, chatId);
 
@@ -102,7 +104,7 @@ public class DocumentSupportAgentWebSocket {
                         return Multi.createFrom().iterable(chunks)
                                 .onCompletion().continueWith(
                                     String.format("{\"messageId\":\"%s\",\"content\":\"%s\",\"type\":\"complete\"}",
-                                        chatResponse.id(),
+                                        userMessageId,
                                         fullResponse.replace("\"", "\\\"").replace("\n", "\\n"))
                                 );
                     });
@@ -111,20 +113,22 @@ public class DocumentSupportAgentWebSocket {
             Log.errorf(e, "Input guardrail violation - chatId=%s: %s", chatId, e.getMessage());
             String errorMessage = "Sorry, I am unable to process your request at the moment. It's not something I'm allowed to do.";
             var errorResponse = chatService.addErrorMessage(chatId, "Input blocked by guardrails");
+            String messageId = userMessage != null ? userMessage.id() : errorResponse.id();
             return Multi.createFrom().item(errorMessage)
                     .onCompletion().continueWith(
                         String.format("{\"messageId\":\"%s\",\"content\":\"%s\",\"type\":\"error\"}",
-                            errorResponse.id(),
+                            messageId,
                             errorMessage.replace("\"", "\\\""))
                     );
         } catch (Exception e) {
             Log.errorf(e, "Unexpected error in WebSocket - chatId=%s: %s", chatId, e.getMessage());
             String errorMessage = "I ran into some problems. Please try again.";
             var errorResponse = chatService.addErrorMessage(chatId, "Error: " + e.getMessage());
+            String messageId = userMessage != null ? userMessage.id() : errorResponse.id();
             return Multi.createFrom().item(errorMessage)
                     .onCompletion().continueWith(
                         String.format("{\"messageId\":\"%s\",\"content\":\"%s\",\"type\":\"error\"}",
-                            errorResponse.id(),
+                            messageId,
                             errorMessage.replace("\"", "\\\""))
                     );
         }

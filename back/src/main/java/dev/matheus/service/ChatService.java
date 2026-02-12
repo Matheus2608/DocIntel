@@ -175,6 +175,7 @@ public class ChatService {
                 });
     }
 
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void saveEmptyRetrievalInfoIfNeeded(String chatId, String userQuestion) {
         LOG.debugf("Checking if empty RetrievalInfo is needed: chatId=%s", chatId);
         var lastMessage = chatMessageRepository.findLastUserMessageByChatId(chatId)
@@ -192,6 +193,7 @@ public class ChatService {
 
             lastMessage.retrievalInfo = info;
             chatMessageRepository.persist(lastMessage);
+            entityManager.flush(); // Force flush to database
             Log.infof("Empty RetrievalInfo saved successfully - messageId=%s", lastMessage.id);
         } else {
             LOG.debugf("RetrievalInfo already exists for messageId=%s, skipping", lastMessage.id);
