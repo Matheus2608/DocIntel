@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Service for parsing documents using Docling.
@@ -54,6 +55,12 @@ public class DoclingDocumentParser {
             return List.of();
         }
 
+        // Handle plain text files (.txt) - convert directly to markdown
+        if (isTextFile(documentFile.fileName)) {
+            LOG.infof("Processing plain text file: %s", documentFile.fileName);
+            return parseTextFile(documentContent, documentFile);
+        }
+
         // Check for minimal/empty documents that Docling cannot process
         if (isMinimalOrEmptyDocument(documentContent)) {
             LOG.warnf("Document %s appears to be empty or minimal, skipping", documentFile.fileName);
@@ -77,9 +84,48 @@ public class DoclingDocumentParser {
     }
 
     /**
+     * Check if the file is a plain text file (.txt).
+     *
+     * @param fileName The document filename
+     * @return true if file is .txt format
+     */
+    private boolean isTextFile(String fileName) {
+        return fileName != null && fileName.toLowerCase().endsWith(".txt");
+    }
+
+    /**
+     * Parse plain text file content.
+     * Converts raw text to markdown format and chunks it.
+     *
+     * @param documentContent The text file content as bytes
+     * @param documentFile The document file entity
+     * @return List of document chunks
+     */
+    private List<DocumentChunk> parseTextFile(byte[] documentContent, DocumentFile documentFile) {
+        try {
+            // Convert bytes to string using UTF-8
+            String textContent = new String(documentContent, StandardCharsets.UTF_8);
+
+            if (textContent.trim().isEmpty()) {
+                LOG.warnf("Text file %s is empty", documentFile.fileName);
+                return List.of();
+            }
+
+            // Use the text content as markdown (plain text is valid markdown)
+            List<DocumentChunk> chunks = extractChunks(textContent, documentFile);
+            LOG.infof("Successfully parsed text file %s into %d chunks", documentFile.fileName, chunks.size());
+            return chunks;
+
+        } catch (Exception e) {
+            LOG.errorf(e, "Failed to parse text file: %s", documentFile.fileName);
+            throw new RuntimeException("Failed to parse text file: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Check if document content is minimal or empty.
      * Validates that the document has sufficient content for processing.
-     * 
+     *
      * @param documentContent The raw document bytes
      * @return true if document is too minimal to process
      */

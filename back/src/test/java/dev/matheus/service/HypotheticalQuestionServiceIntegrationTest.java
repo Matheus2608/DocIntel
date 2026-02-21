@@ -308,23 +308,36 @@ class HypotheticalQuestionServiceIntegrationTest {
      */
     @Test
     void shouldCleanJsonFormattingFromQuestions() {
-        // Given: Questions with JSON formatting
-        String withLeadingAndTrailingQuotesAndComma = "\\\"What is the pricing structure?\\\",";
-        String withLeadingAndTrailingQuotes = "\\\"How does machine learning work?\\\"";
+        // Given: Questions with JSON formatting (escaped quotes)
+        String withEscapedQuotesAndComma = "\\\"What is the pricing structure?\\\",";
+        String withEscapedQuotes = "\\\"How does machine learning work?\\\"";
+
+        // Given: Questions with literal double quotes (actual format from AI)
+        String withDoubleQuotesAndComma = "\"\"Qual é o valor do BLEU para o modelo GNMT + RL Ensemble na tradução de EN-DE?\",\"";
+        String withDoubleQuotes = "\"\"Question text\"\"";
+        String withSingleQuoteAndComma = "\"Question\",";
+
+        // Given: Normal questions
         String normalQuestion = "What are the benefits?";
         String withSpaces = "  \\\"   Why is this important?   \\\",  ";
 
         // When: Cleaning the questions
-        String cleaned1 = hypotheticalQuestionService.cleanJsonFormatting(withLeadingAndTrailingQuotesAndComma);
-        String cleaned2 = hypotheticalQuestionService.cleanJsonFormatting(withLeadingAndTrailingQuotes);
-        String cleaned3 = hypotheticalQuestionService.cleanJsonFormatting(normalQuestion);
-        String cleaned4 = hypotheticalQuestionService.cleanJsonFormatting(withSpaces);
+        String cleaned1 = hypotheticalQuestionService.cleanJsonFormatting(withEscapedQuotesAndComma);
+        String cleaned2 = hypotheticalQuestionService.cleanJsonFormatting(withEscapedQuotes);
+        String cleaned3 = hypotheticalQuestionService.cleanJsonFormatting(withDoubleQuotesAndComma);
+        String cleaned4 = hypotheticalQuestionService.cleanJsonFormatting(withDoubleQuotes);
+        String cleaned5 = hypotheticalQuestionService.cleanJsonFormatting(withSingleQuoteAndComma);
+        String cleaned6 = hypotheticalQuestionService.cleanJsonFormatting(normalQuestion);
+        String cleaned7 = hypotheticalQuestionService.cleanJsonFormatting(withSpaces);
 
         // Then: JSON artifacts are removed
         assertThat(cleaned1).isEqualTo("What is the pricing structure?");
         assertThat(cleaned2).isEqualTo("How does machine learning work?");
-        assertThat(cleaned3).isEqualTo("What are the benefits?");
-        assertThat(cleaned4).isEqualTo("Why is this important?");
+        assertThat(cleaned3).isEqualTo("Qual é o valor do BLEU para o modelo GNMT + RL Ensemble na tradução de EN-DE?");
+        assertThat(cleaned4).isEqualTo("Question text");
+        assertThat(cleaned5).isEqualTo("Question");
+        assertThat(cleaned6).isEqualTo("What are the benefits?");
+        assertThat(cleaned7).isEqualTo("Why is this important?");
     }
 
     /**

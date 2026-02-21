@@ -349,17 +349,39 @@ public class HypotheticalQuestionService {
 
         String cleaned = question.trim();
 
-        // Remove leading \" and trailing \", or \"
-        if (cleaned.startsWith("\\\"")) {
-            cleaned = cleaned.substring(2);
-        }
-        if (cleaned.endsWith("\\\",")) {
-            cleaned = cleaned.substring(0, cleaned.length() - 3);
-        } else if (cleaned.endsWith("\\\"")) {
-            cleaned = cleaned.substring(0, cleaned.length() - 2);
+        // Remove leading quotes (literal or escaped)
+        // Handle: "", ", \"", \"
+        while (cleaned.startsWith("\"") || cleaned.startsWith("\\\"")) {
+            if (cleaned.startsWith("\\\"")) {
+                cleaned = cleaned.substring(2);
+            } else if (cleaned.startsWith("\"")) {
+                cleaned = cleaned.substring(1);
+            }
+            cleaned = cleaned.trim();
         }
 
-        return cleaned.trim();
+        // Remove trailing quotes and commas (literal or escaped)
+        // Handle: ",", "," , ", \",", \","  , \", \"
+        while (cleaned.endsWith("\"") || cleaned.endsWith(",") || cleaned.endsWith("\\\"")) {
+            if (cleaned.endsWith("\\\",")) {
+                cleaned = cleaned.substring(0, cleaned.length() - 3);
+            } else if (cleaned.endsWith("\",\"")) {
+                cleaned = cleaned.substring(0, cleaned.length() - 3);
+            } else if (cleaned.endsWith("\",")) {
+                cleaned = cleaned.substring(0, cleaned.length() - 2);
+            } else if (cleaned.endsWith("\\\"")) {
+                cleaned = cleaned.substring(0, cleaned.length() - 2);
+            } else if (cleaned.endsWith("\",")) {
+                cleaned = cleaned.substring(0, cleaned.length() - 2);
+            } else if (cleaned.endsWith("\"")) {
+                cleaned = cleaned.substring(0, cleaned.length() - 1);
+            } else if (cleaned.endsWith(",")) {
+                cleaned = cleaned.substring(0, cleaned.length() - 1);
+            }
+            cleaned = cleaned.trim();
+        }
+
+        return cleaned;
     }
 
     /**

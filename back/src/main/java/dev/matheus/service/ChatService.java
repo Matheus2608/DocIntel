@@ -3,9 +3,7 @@ package dev.matheus.service;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.matheus.dto.ChatListResponse;
 import dev.matheus.dto.ChatMessageResponse;
 import dev.matheus.dto.ChatResponse;
@@ -138,24 +136,57 @@ public class ChatService {
 
     @Transactional
     public void deleteChat(String chatId) {
-        LOG.infof("Deleting chat from database: chatId=%s", chatId);
+        LOG.infof("Deleting chat and all related data: chatId=%s", chatId);
         Chat chat = chatRepository.findByIdOptional(chatId)
                 .orElseThrow(() -> {
                     LOG.warnf("Chat not found for deletion: chatId=%s", chatId);
                     return new NotFoundException("Chat not found");
                 });
 
-        String filename = chat.documentFile.fileName;
-        chatRepository.delete(chat);
+        DocumentFile documentFile = chat.documentFile;
 
-        try {
-            // delete all embeddings related to this chat
-            embeddingStore.removeAll(new IsEqualTo("FILE_NAME", filename));
-        } catch (Exception ex) {
-            Log.error("Could not execute REMOVEALL", ex);
+        // Remove embeddings from embedding store by their IDs
+        if (documentFile != null) {
+            LOG.infof("Removing embeddings from store for documentId=%s", documentFile.id);
+            try {
+                List<String> embeddingIds = entityManager.createQuery(
+                        "SELECT ce.embeddingId FROM ChunkEmbedding ce WHERE ce.chunk.documentFile.id = :docFileId",
+                        String.class
+                ).setParameter("docFileId", documentFile.id).getResultList();
+
+                for (String embeddingId : embeddingIds) {
+                    try {
+                        embeddingStore.remove(embeddingId);
+                        LOG.debugf("Removed embedding: %s", embeddingId);
+                    } catch (Exception ex) {
+                        LOG.warnf("Failed to remove embedding %s: %s", embeddingId, ex.getMessage());
+                    }
+                }
+                LOG.infof("Removed %d embeddings from store", embeddingIds.size());
+            } catch (Exception ex) {
+                Log.warnf("Could not retrieve embeddings for removal: %s", ex.getMessage());
+            }
+
+            // Delete all ChunkEmbeddings (they reference chunks being deleted)
+            LOG.infof("Deleting all chunk embeddings for documentId=%s", documentFile.id);
+            long deletedChunkEmbeddings = entityManager.createQuery(
+                    "DELETE FROM ChunkEmbedding ce WHERE ce.chunk.documentFile.id = :docFileId"
+            ).setParameter("docFileId", documentFile.id).executeUpdate();
+            LOG.infof("Deleted %d chunk embeddings", deletedChunkEmbeddings);
+
+            // Delete all DocumentChunks related to this document
+            LOG.infof("Deleting all document chunks for documentId=%s", documentFile.id);
+            long deletedChunks = entityManager.createQuery(
+                    "DELETE FROM DocumentChunk dc WHERE dc.documentFile.id = :docFileId"
+            ).setParameter("docFileId", documentFile.id).executeUpdate();
+            LOG.infof("Deleted %d document chunks", deletedChunks);
         }
 
-        LOG.infof("All embeddings related to filename=%s have been deleted", filename);
+        // Delete chat (cascades to ChatMessages, RetrievalInfo, HypoteticalQuestions)
+        LOG.infof("Deleting chat entity: chatId=%s", chatId);
+        chatRepository.delete(chat);
+
+        LOG.infof("Chat and all related data deleted successfully: chatId=%s", chatId);
     }
 
     @Transactional
