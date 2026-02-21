@@ -38,11 +38,11 @@ export const useChats = () => {
 
     // Deleta um chat
     const deleteChat = (chatId) => {
-        fetch(`http://localhost:8080/api/chats/${chatId}/messages`,
+        fetch(`http://localhost:8080/api/chats/${chatId}`,
             { method: 'DELETE' }
         ).then(response => {
             if (response.ok) {
-                console.log('Chat messages deleted successfully');
+                console.log('Chat deleted successfully');
                 setChats(prevChats => prevChats.filter(chat => chat.id !== chatId));
             } else {
                 console.error('Failed to delete chat messages');

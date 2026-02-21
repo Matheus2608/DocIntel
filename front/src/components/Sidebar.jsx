@@ -106,15 +106,11 @@ export const Sidebar = ({
                     <Database size={16} />
                     Embedding Search
                 </button>
-                <button className="w-full flex items-center gap-3 px-3 py-3 hover:bg-gray-800 rounded-md text-sm transition-colors">
-                    <Settings size={16} />
-                    Settings
-                </button>
                 <div className="flex items-center gap-3 px-3 py-3 hover:bg-gray-800 rounded-md text-sm cursor-pointer border-t border-gray-800">
                     <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold">
-                        U
+                        A
                     </div>
-                    <span className="flex-1 truncate">Usuário Logado</span>
+                    <span className="flex-1 truncate">Admin</span>
                     <LogOut size={14} className="text-gray-500" />
                 </div>
             </div>
