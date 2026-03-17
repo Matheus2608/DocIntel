@@ -12,6 +12,8 @@ export const useWebSocketChat = (chatId, wsUrl) => {
     const wsRef = useRef(null);
     const currentStreamRef = useRef(null);
     const reconnectDelayRef = useRef(1000);
+    const tokenBufferRef = useRef([]);
+    const displayIntervalRef = useRef(null);
 
     // Carrega mensagens anteriores do chat
     const loadPastMessages = async (chatId) => {
@@ -34,7 +36,6 @@ export const useWebSocketChat = (chatId, wsUrl) => {
 
     // Atualiza a última mensagem do usuário com o ID recebido
     const updateLastUserMessageWithId = (messages, messageId) => {
-        console.log("Updating last user message with messages", messages, "and messageId", messageId);
         let lastUserMessageIdx = null;
         for (let i = messages.length - 1; i >= 0; i--) {
             if (messages[i].role === 'user') {
@@ -46,15 +47,11 @@ export const useWebSocketChat = (chatId, wsUrl) => {
 
         const messagesBefore = messages.slice(0, lastUserMessageIdx);
         const messagesAfter = messages.slice(lastUserMessageIdx + 1);
-        console.log("messages before = ", messagesBefore)
-        console.log("messages after = ", messagesAfter)
 
-        const response = messagesBefore.concat({
+        return messagesBefore.concat({
             ...messages[lastUserMessageIdx],
             id: messageId
         }).concat(messagesAfter);
-        console.log("updated messages = ", response)
-        return response;
     };
 
     // Verifica se é uma mensagem de sistema (boas-vindas ou erro)
@@ -71,38 +68,82 @@ export const useWebSocketChat = (chatId, wsUrl) => {
         currentStreamRef.current = null;
     };
 
+    // Starts the display interval that drains the token buffer at a fixed rate
+    const startDisplayTimer = () => {
+        if (displayIntervalRef.current !== null) return;
+
+        displayIntervalRef.current = setInterval(() => {
+            if (tokenBufferRef.current.length === 0) {
+                clearInterval(displayIntervalRef.current);
+                displayIntervalRef.current = null;
+                return;
+            }
+
+            // Take up to 3 characters from the front of the buffer
+            const chars = tokenBufferRef.current.splice(0, 3).join('');
+
+            setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last && last.role === 'assistant') {
+                    const updatedText = last.text + chars;
+                    currentStreamRef.current = { role: 'assistant', text: updatedText };
+                    return prev.slice(0, -1).concat({ role: 'assistant', text: updatedText });
+                }
+                currentStreamRef.current = { role: 'assistant', text: chars };
+                return [...prev, { role: 'assistant', text: chars }];
+            });
+        }, 30);
+    };
+
     // Inicia o streaming de uma nova resposta
     const startStreaming = (messageText) => {
         setIsTyping(false);
-        currentStreamRef.current = { role: 'assistant', text: messageText };
+        // Create the assistant message placeholder
+        currentStreamRef.current = { role: 'assistant', text: '' };
         setMessages(prev => [...prev, currentStreamRef.current]);
+        // Push all characters of the token into the buffer
+        for (const ch of messageText) {
+            tokenBufferRef.current.push(ch);
+        }
+        startDisplayTimer();
     };
 
     // Continua o streaming adicionando mais texto
     const continueStreaming = (messageText) => {
         setIsTyping(false);
-        const updatedText = currentStreamRef.current.text + messageText;
-        currentStreamRef.current.text = updatedText;
-        setMessages(prev => {
-            const newMessage = prev.slice(0, -1).concat({role: 'assistant', text: updatedText});
-            console.log("Updated streaming message:", newMessage);
-            return newMessage;
-        });
+        // Push all characters into the buffer
+        for (const ch of messageText) {
+            tokenBufferRef.current.push(ch);
+        }
+        startDisplayTimer();
     };
 
     // Handler principal das mensagens do WebSocket
     const handleWebSocketMessage = (event) => {
         const messageText = event.data;
 
-        console.log("Received WebSocket message:", messageText);
-
         // Tenta fazer parse como JSON (mensagem completa)
         try {
             const parsedMessage = JSON.parse(messageText);
-            console.log("Parsed WebSocket JSON message:", parsedMessage);
             if (!parsedMessage.messageId || !parsedMessage.content) {
-                console.log("Invalid message format, missing fields");
                 throw new Error("Invalid message format");
+            }
+
+            // Flush remaining buffer synchronously before finalising
+            if (tokenBufferRef.current.length > 0) {
+                const remaining = tokenBufferRef.current.splice(0).join('');
+                setMessages(prev => {
+                    const last = prev[prev.length - 1];
+                    if (last && last.role === 'assistant') {
+                        return prev.slice(0, -1).concat({ role: 'assistant', text: last.text + remaining });
+                    }
+                    return [...prev, { role: 'assistant', text: remaining }];
+                });
+            }
+            // Stop display timer
+            if (displayIntervalRef.current !== null) {
+                clearInterval(displayIntervalRef.current);
+                displayIntervalRef.current = null;
             }
 
             setMessages(prev => updateLastUserMessageWithId(prev, parsedMessage.messageId));
@@ -171,13 +212,17 @@ export const useWebSocketChat = (chatId, wsUrl) => {
         return () => {
             shouldStop = true;
             currentStreamRef.current = null;
+            tokenBufferRef.current = [];
+            if (displayIntervalRef.current !== null) {
+                clearInterval(displayIntervalRef.current);
+                displayIntervalRef.current = null;
+            }
             wsRef.current?.close();
         };
     }, [chatId, wsUrl]);
 
     // Envia mensagem pelo WebSocket
     const sendMessage = (text) => {
-        console.log("sendMessage called with text =", text);
         if (!text?.trim() || !isConnected) return false;
 
         setMessages(prev => [...prev, { role: 'user', text: text.trim() }]);
@@ -202,6 +247,7 @@ export const useWebSocketChat = (chatId, wsUrl) => {
         messages,
         isConnected,
         isTyping,
-        sendMessage
+        sendMessage,
+        tokenBufferRef
     };
 };
