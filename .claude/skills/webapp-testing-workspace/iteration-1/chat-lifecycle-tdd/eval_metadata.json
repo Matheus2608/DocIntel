@@ -1,0 +1,12 @@
+{
+  "eval_id": 2,
+  "eval_name": "chat-lifecycle-tdd",
+  "prompt": "Finished the TDD cycle for the chat sidebar. Red, green, refactor all done on the backend. Now I need to close out the frontend side — validate that creating and deleting chats works correctly in the browser.",
+  "assertions": [
+    "Reads Sidebar.jsx (or related component) before writing locators",
+    "Writes tests for both creating a chat and deleting a chat",
+    "Verifies that chat appears in list after creation and disappears after deletion",
+    "Runs the tests and reports the outcome",
+    "Handles the scenario where tests don't exist yet (writes them) rather than only trying to run them"
+  ]
+}

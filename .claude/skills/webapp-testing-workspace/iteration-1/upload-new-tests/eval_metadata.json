@@ -1,0 +1,12 @@
+{
+  "eval_id": 0,
+  "eval_name": "upload-new-tests",
+  "prompt": "I just finished implementing the document upload feature with drag-and-drop in Upload.jsx. The backend endpoint is working but I haven't tested the frontend interaction at all. Can you set up Playwright and write e2e tests for the upload flow?",
+  "assertions": [
+    "Reads the Upload.jsx component source before writing selectors",
+    "Creates or references a playwright.config.ts file",
+    "Writes a spec file targeting the upload flow (drag-and-drop or file input)",
+    "Tests at least one happy path and one error case (e.g. unsupported file type)",
+    "Uses role/text/label selectors or reads component to get accurate class names — does NOT invent selectors like data-testid without verifying they exist"
+  ]
+}

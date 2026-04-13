@@ -6,6 +6,7 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.matheus.ai.LanguageDetectionAiService;
 import dev.matheus.ai.QuestionExtractorAiService;
 import dev.matheus.entity.ChunkEmbedding;
 import dev.matheus.entity.ContentType;
@@ -52,6 +53,9 @@ public class HypotheticalQuestionService {
     QuestionExtractorAiService questionExtractorAiService;
 
     @Inject
+    LanguageDetectionAiService languageDetectionAiService;
+
+    @Inject
     @Named("retrievalExecutorService")
     ExecutorService executorService;
 
@@ -77,6 +81,21 @@ public class HypotheticalQuestionService {
         // Load document and chunks in a separate short transaction
         // Called via self (CDI proxy) so @Transactional is properly activated
         DocumentAndChunks data = self.loadDocumentAndChunks(docId);
+
+        if (data.doc.language == null && !data.chunks.isEmpty()) {
+            String content = data.chunks.get(0).content;
+            if (content != null && !content.isBlank()) {
+                String sample = content.substring(0, Math.min(500, content.length()));
+                try {
+                    String detected = languageDetectionAiService.detectLanguage(sample);
+                    if (detected != null && !detected.isBlank()) {
+                        self.setDocumentLanguage(data.doc.id, detected.trim().toLowerCase());
+                    }
+                } catch (Exception e) {
+                    Log.warnf(e, "Language detection failed for docId=%s. Continuing without language metadata.", data.doc.id);
+                }
+            }
+        }
         
         // Transaction committed in loadDocumentAndChunks() - no longer active here
         Log.infof("Starting embedding generation - docId=%s, fileName=%s", data.doc.id, data.doc.fileName);
@@ -107,6 +126,14 @@ public class HypotheticalQuestionService {
                 .find("SELECT c FROM DocumentChunk c JOIN FETCH c.documentFile WHERE c.documentFile.id = ?1", doc.id)
                 .list();
         return new DocumentAndChunks(doc, chunks);
+    }
+
+    @Transactional
+    public void setDocumentLanguage(String docId, String language) {
+        DocumentFile doc = DocumentFile.findById(docId);
+        if (doc != null) {
+            doc.language = language;
+        }
     }
     
     /**

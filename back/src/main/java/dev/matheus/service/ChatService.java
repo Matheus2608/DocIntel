@@ -4,16 +4,19 @@ import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.matheus.dto.AgentStepResponse;
 import dev.matheus.dto.ChatListResponse;
 import dev.matheus.dto.ChatMessageResponse;
 import dev.matheus.dto.ChatResponse;
 import dev.matheus.dto.DocumentFileResponse;
+import dev.matheus.entity.AgentStep;
 import dev.matheus.entity.Chat;
 import dev.matheus.entity.ChatMessage;
 import dev.matheus.entity.DocumentFile;
 import dev.matheus.entity.ProcessingStatus;
 import dev.matheus.entity.RetrievalInfo;
 import dev.matheus.event.DocumentCreatedEvent;
+import dev.matheus.repository.AgentStepRepository;
 import dev.matheus.repository.ChatMessageRepository;
 import dev.matheus.repository.ChatRepository;
 import dev.matheus.repository.DocumentFileRepository;
@@ -63,6 +66,12 @@ public class ChatService {
 
     @Inject
     Event<DocumentCreatedEvent> documentCreatedEvent;
+
+    @Inject
+    AgentStepService agentStepService;
+
+    @Inject
+    AgentStepRepository agentStepRepository;
 
 
     @Transactional
@@ -281,8 +290,36 @@ public class ChatService {
         LOG.debugf("Fetching messages for chat: chatId=%s", chatId);
         List<ChatMessage> messages = chatMessageRepository.findByChatId(chatId);
         LOG.debugf("Found %d messages for chatId=%s", messages.size(), chatId);
+
+        List<String> messageIds = messages.stream().map(m -> m.id).toList();
+        java.util.Map<String, Long> stepCounts = agentStepRepository.countByMessageIds(messageIds);
+
         return messages.stream()
-                .map(this::mapToChatMessageResponse)
+                .map(m -> new ChatMessageResponse(
+                        m.id,
+                        m.role,
+                        m.content,
+                        m.createdAt,
+                        stepCounts.getOrDefault(m.id, 0L).intValue()
+                ))
+                .toList();
+    }
+
+    public List<AgentStepResponse> getAgentSteps(String messageId) {
+        LOG.debugf("Fetching agent steps for message: messageId=%s", messageId);
+        List<AgentStep> steps = agentStepRepository.findByMessageId(messageId);
+        return steps.stream()
+                .map(s -> new AgentStepResponse(
+                        s.id,
+                        s.toolName,
+                        s.status,
+                        s.argumentsJson,
+                        s.resultPreview,
+                        s.errorMessage,
+                        s.sequenceIdx,
+                        s.startedAt,
+                        s.endedAt
+                ))
                 .toList();
     }
 
@@ -292,27 +329,34 @@ public class ChatService {
             @P("Índice inicial (baseado em 0)") int startIdx,
             @P("Índice final (exclusivo)") int endIdx) {
 
-        LOG.debugf("Fetching recent USER conversation history for chat: chatId=%s", chatId);
+        String stepId = agentStepService.startStep(chatId, "getRecentUserMessages",
+                java.util.Map.of("startIdx", startIdx, "endIdx", endIdx));
+        try {
+            LOG.debugf("Fetching recent USER conversation history for chat: chatId=%s", chatId);
 
-        List<ChatMessage> allMessages = chatMessageRepository.findByChatId(chatId);
+            List<ChatMessage> allMessages = chatMessageRepository.findByChatId(chatId);
 
-        // Filter out system messages and welcome messages and last message (since is the current one seeing by AI)
-        List<ChatMessage> relevantMessages = allMessages.stream()
-                .filter(msg -> !msg.role.equals("system")) // Exclude system messages
-                .filter(msg -> !isWelcomeMessage(msg.content)) // Exclude welcome messages
-                .limit(Math.max(0, allMessages.size() - 1)) // Exclude last message
-                .toList();
+            // Filter out system messages and welcome messages and last message (since is the current one seeing by AI)
+            List<ChatMessage> relevantMessages = allMessages.stream()
+                    .filter(msg -> !msg.role.equals("system"))
+                    .filter(msg -> !isWelcomeMessage(msg.content))
+                    .limit(Math.max(0, allMessages.size() - 1))
+                    .toList();
 
-        // Bounds checking to prevent IndexOutOfBoundsException
-        int safeStartIdx = Math.max(0, Math.min(startIdx, relevantMessages.size()));
-        int safeEndIdx = Math.max(safeStartIdx, Math.min(endIdx, relevantMessages.size()));
+            int safeStartIdx = Math.max(0, Math.min(startIdx, relevantMessages.size()));
+            int safeEndIdx = Math.max(safeStartIdx, Math.min(endIdx, relevantMessages.size()));
 
-        List<String> result = relevantMessages.subList(safeStartIdx, safeEndIdx).stream()
-                .map(msg -> msg.content)
-                .toList();
+            List<String> result = relevantMessages.subList(safeStartIdx, safeEndIdx).stream()
+                    .map(msg -> msg.content)
+                    .toList();
 
-        LOG.debugf("Retrieving %s USER messages from chatId=%s", result.size(), chatId);
-        return result;
+            LOG.debugf("Retrieving %s USER messages from chatId=%s", result.size(), chatId);
+            agentStepService.endStep(stepId, "messages=" + result.size());
+            return result;
+        } catch (RuntimeException ex) {
+            agentStepService.failStep(stepId, ex.getMessage());
+            throw ex;
+        }
     }
 
     @Tool(value = "Recupera um intervalo de mensagens do tipo ASSISTENTE do histórico do chat. Exemplo: getRecentAiResponses(chatId, 0, 5) retorna as primeiras 5 mensagens do tipo ASSISTENTE")
@@ -321,30 +365,38 @@ public class ChatService {
             @P("Índice inicial (baseado em 0)") int startIdx,
             @P("Índice final (exclusivo)") int endIdx) {
 
-        LOG.debugf("Fetching recent AI conversation history for chat: chatId=%s", chatId);
+        String stepId = agentStepService.startStep(chatId, "getRecentAiResponses",
+                java.util.Map.of("startIdx", startIdx, "endIdx", endIdx));
+        try {
+            LOG.debugf("Fetching recent AI conversation history for chat: chatId=%s", chatId);
 
-        List<ChatMessage> allMessages = chatMessageRepository.findByChatId(chatId);
+            List<ChatMessage> allMessages = chatMessageRepository.findByChatId(chatId);
 
-        // Filter out user messages and welcome messages
-        List<ChatMessage> relevantMessages = allMessages.stream()
-                .filter(msg -> !msg.role.equals("user")) // Exclude system messages
-                .filter(msg -> !isWelcomeMessage(msg.content)) // Exclude welcome messages
-                .toList();
+            List<ChatMessage> relevantMessages = allMessages.stream()
+                    .filter(msg -> !msg.role.equals("user"))
+                    .filter(msg -> !isWelcomeMessage(msg.content))
+                    .toList();
 
-        List<String> result = relevantMessages.subList(startIdx, endIdx).stream()
-                .map(msg -> msg.content)
-                .toList();
+            int safeStartIdx = Math.max(0, Math.min(startIdx, relevantMessages.size()));
+            int safeEndIdx = Math.max(safeStartIdx, Math.min(endIdx, relevantMessages.size()));
 
-        LOG.debugf("Retrieving %s AI messages from chatId=%s", result.size(), chatId);
-        return result;
+            List<String> result = relevantMessages.subList(safeStartIdx, safeEndIdx).stream()
+                    .map(msg -> msg.content)
+                    .toList();
+
+            LOG.debugf("Retrieving %s AI messages from chatId=%s", result.size(), chatId);
+            agentStepService.endStep(stepId, "messages=" + result.size());
+            return result;
+        } catch (RuntimeException ex) {
+            agentStepService.failStep(stepId, ex.getMessage());
+            throw ex;
+        }
     }
 
-    @Tool(value = "Retorna o número de mensagens do assistente")
     public long getNumberOfAssistantMessages(String chatId) {
         return chatMessageRepository.countNumberOfAssistantMessages(chatId);
     }
 
-    @Tool(value = "Retorna o número de mensagens do usuário")
     public long getNumberOfUserMessages(String chatId) {
         return chatMessageRepository.countNumberOfUserMessages(chatId);
     }
@@ -361,7 +413,6 @@ public class ChatService {
         );
     }
 
-    @Tool("retorna metadata do documento")
     @Transactional
     public DocumentFileResponse getDocument(String chatId) {
         return documentFileRepository.findByChatId(chatId)
@@ -404,7 +455,8 @@ public class ChatService {
                 file.fileName,
                 file.fileType,
                 file.fileSize,
-                file.uploadedAt
+                file.uploadedAt,
+                file.language
         );
     }
 }

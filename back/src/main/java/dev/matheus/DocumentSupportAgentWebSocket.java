@@ -5,6 +5,7 @@ import dev.matheus.ai.DocumentSupportAgent;
 import dev.matheus.dto.ChatMessageResponse;
 import dev.matheus.entity.Chat;
 import dev.matheus.entity.DocumentFile;
+import dev.matheus.service.ChatSessionRegistry;
 import dev.matheus.service.ChatService;
 import io.quarkus.logging.Log;
 import io.quarkus.websockets.next.OnClose;
@@ -31,6 +32,9 @@ public class DocumentSupportAgentWebSocket {
     @Inject
     private ChatService chatService;
 
+    @Inject
+    ChatSessionRegistry registry;
+
     public DocumentSupportAgentWebSocket(DocumentSupportAgent documentSupportAgent) {
         this.documentSupportAgent = documentSupportAgent;
     }
@@ -39,6 +43,8 @@ public class DocumentSupportAgentWebSocket {
     @RunOnVirtualThread
     @Transactional
     public String onOpen(WebSocketConnection connection) {
+        String chatId = connection.pathParam("chatId");
+        registry.register(chatId, connection);
         return "";
 //        String chatId = connection.pathParam("chatId");
 //        Log.infof("WebSocket connection opened - chatId=%s, connectionId=%s", chatId, connection.id());
@@ -137,6 +143,7 @@ public class DocumentSupportAgentWebSocket {
     @OnClose
     public void onClose(WebSocketConnection connection) {
         String chatId = connection.pathParam("chatId");
+        registry.unregister(chatId);
         Log.infof("WebSocket connection closed - chatId=%s, connectionId=%s", chatId, connection.id());
     }
 

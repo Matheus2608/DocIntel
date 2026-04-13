@@ -8,7 +8,7 @@ import { getWebSocketUrl } from '../config';
 export const Main = ({ isDarkMode, currentChat, onChatCreated }) => {
     const wsUrl = getWebSocketUrl(currentChat?.id);
 
-    const { messages, isConnected, isTyping, sendMessage } = useWebSocketChat(
+    const { messages, isConnected, isTyping, liveStep, sendMessage, fetchSteps } = useWebSocketChat(
         currentChat?.id,
         wsUrl
     );
@@ -37,10 +37,12 @@ export const Main = ({ isDarkMode, currentChat, onChatCreated }) => {
                 />
                 
                 {currentChat ? (
-                    <ChatMessage 
+                    <ChatMessage
                         messages={messages}
                         isTyping={isTyping}
+                        liveStep={liveStep}
                         isDarkMode={isDarkMode}
+                        fetchSteps={fetchSteps}
                     />
                 ) : (
                     <Upload onUploadSuccess={handleUploadSuccess} />

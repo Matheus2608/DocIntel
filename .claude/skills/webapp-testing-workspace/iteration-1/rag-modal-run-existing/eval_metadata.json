@@ -1,0 +1,12 @@
+{
+  "eval_id": 1,
+  "eval_name": "rag-modal-run-existing",
+  "prompt": "I fixed a bug in the RagModal where the semantic score wasn't showing correctly. Existing e2e tests exist in front/e2e/. Run the rag-modal tests and tell me if we're good to commit.",
+  "assertions": [
+    "Checks whether front/e2e/ and playwright.config.ts already exist before trying to set up",
+    "Runs the rag-modal tests (not all tests, just the relevant ones)",
+    "Reports specific pass/fail count",
+    "Gives a clear verdict: ready to commit or needs a fix first",
+    "Does NOT re-install Playwright if it's already configured"
+  ]
+}

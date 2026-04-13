@@ -8,10 +8,57 @@ export const useWebSocketChat = (chatId, wsUrl) => {
     const [messages, setMessages] = useState([]);
     const [isConnected, setIsConnected] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
+    const [liveStep, setLiveStep] = useState(null);
 
     const wsRef = useRef(null);
     const currentStreamRef = useRef(null);
     const reconnectDelayRef = useRef(1000);
+    const pendingStepsRef = useRef([]);
+
+    const sanitizeSteps = (steps) =>
+        (steps ?? []).map(s => s.status === 'running' ? { ...s, status: 'done' } : s);
+
+    const sanitizeLastAssistantSteps = (list) => {
+        let idx = -1;
+        for (let i = list.length - 1; i >= 0; i--) {
+            if (list[i].role === 'assistant') { idx = i; break; }
+        }
+        if (idx < 0 || !Array.isArray(list[idx].steps)) return list;
+        const copy = [...list];
+        copy[idx] = { ...copy[idx], steps: sanitizeSteps(copy[idx].steps) };
+        return copy;
+    };
+
+    const safeParseJson = (raw) => {
+        try { return JSON.parse(raw); } catch { return null; }
+    };
+
+    const buildStep = (event) => ({
+        tool: event.tool,
+        status: event.status === 'start' ? 'running' : 'done',
+        arguments: event.arguments ?? null,
+        startedAt: Date.now(),
+    });
+
+    const updateSteps = (steps, event) => {
+        if (event.status === 'start') {
+            return [...steps, buildStep(event)];
+        }
+
+        if (event.status === 'end') {
+            let updated = false;
+            const next = steps.map((step) => {
+                if (!updated && step.tool === event.tool && step.status === 'running') {
+                    updated = true;
+                    return { ...step, status: 'done' };
+                }
+                return step;
+            });
+            return updated ? next : [...next, { ...buildStep(event), status: 'done' }];
+        }
+
+        return steps;
+    };
 
     // Carrega mensagens anteriores do chat
     const loadPastMessages = async (chatId) => {
@@ -24,11 +71,30 @@ export const useWebSocketChat = (chatId, wsUrl) => {
                     createdAt: msg.createdAt,
                     role: msg.role,
                     text: msg.content,
+                    stepCount: msg.stepCount ?? 0,
                 }));
                 setMessages(formattedMessages);
             }
         } catch (error) {
             console.warn('Erro ao carregar mensagens:', error);
+        }
+    };
+
+    // Busca os passos persistidos de uma mensagem (para histórico)
+    const fetchSteps = async (messageId) => {
+        if (!chatId || !messageId) return [];
+        try {
+            const response = await fetch(`${API_BASE_URL}/${chatId}/messages/${messageId}/steps`);
+            if (!response.ok) return [];
+            const steps = await response.json();
+            return steps.map(s => ({
+                tool: s.toolName,
+                status: s.status === 'running' ? 'running' : (s.status === 'error' ? 'error' : 'done'),
+                arguments: s.argumentsJson ? safeParseJson(s.argumentsJson) : null,
+            }));
+        } catch (error) {
+            console.warn('Erro ao carregar passos:', error);
+            return [];
         }
     };
 
@@ -67,6 +133,7 @@ export const useWebSocketChat = (chatId, wsUrl) => {
     // Adiciona mensagem de sistema
     const handleSystemMessage = (messageText) => {
         setIsTyping(false);
+        setLiveStep(null);
         setMessages(prev => [...prev, { role: 'assistant', text: messageText }]);
         currentStreamRef.current = null;
     };
@@ -74,19 +141,41 @@ export const useWebSocketChat = (chatId, wsUrl) => {
     // Inicia o streaming de uma nova resposta
     const startStreaming = (messageText) => {
         setIsTyping(false);
-        currentStreamRef.current = { role: 'assistant', text: messageText };
-        setMessages(prev => [...prev, currentStreamRef.current]);
+        setLiveStep(null);
+        const cleanedPending = sanitizeSteps(pendingStepsRef.current);
+        currentStreamRef.current = { role: 'assistant', text: messageText, steps: cleanedPending };
+        setMessages(prev => {
+            const sanitized = sanitizeLastAssistantSteps(prev);
+            const last = sanitized[sanitized.length - 1];
+            if (last?.role === 'assistant' && last?.text === '' && Array.isArray(last?.steps)) {
+                const merged = { ...currentStreamRef.current, steps: sanitizeSteps(last.steps) };
+                currentStreamRef.current = merged;
+                return sanitized.slice(0, -1).concat(merged);
+            }
+            return [...sanitized, currentStreamRef.current];
+        });
+        pendingStepsRef.current = [];
     };
 
     // Continua o streaming adicionando mais texto
     const continueStreaming = (messageText) => {
         setIsTyping(false);
+        if (!currentStreamRef.current) {
+            startStreaming(messageText);
+            return;
+        }
+        const existingSteps = currentStreamRef.current.steps ?? [];
         const updatedText = currentStreamRef.current.text + messageText;
         currentStreamRef.current.text = updatedText;
         setMessages(prev => {
-            const newMessage = prev.slice(0, -1).concat({role: 'assistant', text: updatedText});
-            console.log("Updated streaming message:", newMessage);
-            return newMessage;
+            const last = prev[prev.length - 1];
+            const merged = {
+                role: 'assistant',
+                text: updatedText,
+                steps: existingSteps.length ? existingSteps : (last?.steps ?? [])
+            };
+            currentStreamRef.current = merged;
+            return prev.slice(0, -1).concat(merged);
         });
     };
 
@@ -100,13 +189,39 @@ export const useWebSocketChat = (chatId, wsUrl) => {
         try {
             const parsedMessage = JSON.parse(messageText);
             console.log("Parsed WebSocket JSON message:", parsedMessage);
+            if (parsedMessage.type === 'tool_call') {
+                const event = parsedMessage;
+                if (event.status === 'start') {
+                    setLiveStep({
+                        tool: event.tool,
+                        arguments: event.arguments ?? null,
+                        status: 'running',
+                    });
+                } else if (event.status === 'end') {
+                    setLiveStep(null);
+                }
+                setMessages(prev => {
+                    const last = prev[prev.length - 1];
+                    if (last?.role === 'assistant') {
+                        const nextSteps = updateSteps(last.steps ?? [], event);
+                        return prev.slice(0, -1).concat({ ...last, steps: nextSteps });
+                    }
+
+                    const nextSteps = updateSteps(pendingStepsRef.current, event);
+                    pendingStepsRef.current = nextSteps;
+                    return prev;
+                });
+                return;
+            }
+
             if (!parsedMessage.messageId || !parsedMessage.content) {
-                console.log("Invalid message format, missing fields");
                 throw new Error("Invalid message format");
             }
 
-            setMessages(prev => updateLastUserMessageWithId(prev, parsedMessage.messageId));
+            setMessages(prev => sanitizeLastAssistantSteps(updateLastUserMessageWithId(prev, parsedMessage.messageId)));
             setIsTyping(false);
+            setLiveStep(null);
+            pendingStepsRef.current = sanitizeSteps(pendingStepsRef.current);
             currentStreamRef.current = null;
             return;
         } catch (e) {
@@ -148,7 +263,9 @@ export const useWebSocketChat = (chatId, wsUrl) => {
 
             wsRef.current.onclose = () => {
                 setIsConnected(false);
+                setLiveStep(null);
                 currentStreamRef.current = null;
+                pendingStepsRef.current = [];
 
                 if (!shouldStop) {
                     setTimeout(() => {
@@ -160,7 +277,9 @@ export const useWebSocketChat = (chatId, wsUrl) => {
 
             wsRef.current.onerror = () => {
                 setIsConnected(false);
+                setLiveStep(null);
                 currentStreamRef.current = null;
+                pendingStepsRef.current = [];
                 wsRef.current?.close();
             };
         };
@@ -171,6 +290,7 @@ export const useWebSocketChat = (chatId, wsUrl) => {
         return () => {
             shouldStop = true;
             currentStreamRef.current = null;
+            pendingStepsRef.current = [];
             wsRef.current?.close();
         };
     }, [chatId, wsUrl]);
@@ -182,7 +302,9 @@ export const useWebSocketChat = (chatId, wsUrl) => {
 
         setMessages(prev => [...prev, { role: 'user', text: text.trim() }]);
         setIsTyping(true);
+        setLiveStep(null);
         currentStreamRef.current = null;
+        pendingStepsRef.current = [];
 
         if (wsRef.current?.readyState === WebSocket.OPEN) {
             wsRef.current.send(text.trim());
@@ -202,6 +324,8 @@ export const useWebSocketChat = (chatId, wsUrl) => {
         messages,
         isConnected,
         isTyping,
-        sendMessage
+        liveStep,
+        sendMessage,
+        fetchSteps
     };
 };

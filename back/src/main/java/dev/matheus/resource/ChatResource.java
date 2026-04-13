@@ -1,5 +1,6 @@
 package dev.matheus.resource;
 
+import dev.matheus.dto.AgentStepResponse;
 import dev.matheus.dto.ChatListResponse;
 import dev.matheus.dto.ChatMessageResponse;
 import dev.matheus.dto.ChatResponse;
@@ -104,6 +105,15 @@ public class ChatResource {
     public List<ChatMessageResponse> getChatMessages(@PathParam("chatId") String chatId) {
         LOG.debugf("Received request to get messages: chatId=%s", chatId);
         return chatService.getChatMessages(chatId);
+    }
+
+    @GET
+    @Path("/{chatId}/messages/{messageId}/steps")
+    public List<AgentStepResponse> getMessageSteps(
+            @PathParam("chatId") String chatId,
+            @PathParam("messageId") String messageId) {
+        LOG.debugf("Received request to get agent steps: chatId=%s, messageId=%s", chatId, messageId);
+        return chatService.getAgentSteps(messageId);
     }
 
     @GET

@@ -52,6 +52,9 @@ public class DocumentFile extends PanacheEntityBase {
     @Column(name = "processor_version", length = 50)
     public String processorVersion;
 
+    @Column(name = "language", length = 40)
+    public String language;
+
     @PrePersist
     public void prePersist() {
         if (uploadedAt == null) {
@@ -62,4 +65,3 @@ public class DocumentFile extends PanacheEntityBase {
         }
     }
 }
-

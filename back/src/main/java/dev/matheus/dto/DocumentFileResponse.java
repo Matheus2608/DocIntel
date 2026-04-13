@@ -7,6 +7,6 @@ public record DocumentFileResponse(
     String fileName,
     String fileType,
     Long fileSize,
-    LocalDateTime uploadedAt
+    LocalDateTime uploadedAt,
+    String language
 ) {}
-

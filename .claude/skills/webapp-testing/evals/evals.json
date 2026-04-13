@@ -1,0 +1,44 @@
+{
+  "skill_name": "webapp-testing",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "I just finished implementing the document upload feature with drag-and-drop in Upload.jsx. The backend endpoint is working but I haven't tested the frontend interaction at all. Can you set up Playwright and write e2e tests for the upload flow?",
+      "expected_output": "Playwright setup (config + install commands) and a spec file for the upload flow that reads Upload.jsx before writing selectors, tests file drop and the success/error feedback states.",
+      "assertions": [
+        "Reads the Upload.jsx component source before writing selectors",
+        "Creates or references a playwright.config.ts file",
+        "Writes a spec file targeting the upload flow (drag-and-drop or file input)",
+        "Tests at least one happy path and one error case (e.g. unsupported file type)",
+        "Uses role/text/label selectors or reads component to get accurate class names — does NOT invent selectors like data-testid without verifying they exist"
+      ],
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "I fixed a bug in the RagModal where the semantic score wasn't showing correctly. Existing e2e tests exist in front/e2e/. Run the rag-modal tests and tell me if we're good to commit.",
+      "expected_output": "Runs existing Playwright tests for the rag-modal, reports pass/fail results with specific error output if any, gives a clear commit/fix verdict.",
+      "assertions": [
+        "Checks whether front/e2e/ and playwright.config.ts already exist before trying to set up",
+        "Runs the rag-modal tests (not all tests, just the relevant ones)",
+        "Reports specific pass/fail count",
+        "Gives a clear verdict: ready to commit or needs a fix first",
+        "Does NOT re-install Playwright if it's already configured"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Finished the TDD cycle for the chat sidebar. Red, green, refactor all done on the backend. Now I need to close out the frontend side — validate that creating and deleting chats works correctly in the browser.",
+      "expected_output": "Writes e2e tests for chat lifecycle (create + delete) by reading Sidebar.jsx first to get accurate selectors, runs them, reports result.",
+      "assertions": [
+        "Reads Sidebar.jsx (or related component) before writing locators",
+        "Writes tests for both creating a chat and deleting a chat",
+        "Verifies that chat appears in list after creation and disappears after deletion",
+        "Runs the tests and reports the outcome",
+        "Handles the scenario where tests don't exist yet (writes them) rather than only trying to run them"
+      ],
+      "files": []
+    }
+  ]
+}
