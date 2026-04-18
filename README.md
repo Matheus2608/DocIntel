@@ -13,7 +13,12 @@
 
 </div>
 
-![Chat Dark Mode](./docintel-images/chat-darkmode.png)
+<div align="center">
+  <video controls width="900">
+    <source src="./assets/docintel-demo.mp4" type="video/mp4">
+    Seu navegador não suporta o elemento de vídeo.
+  </video>
+</div>
 ---
 
 ## 🎯 O que é o DocIntel?
